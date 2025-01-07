@@ -1,6 +1,7 @@
 import { GithubService } from "../services/githubService"
 import { GithubApiRepo } from "../types/types"
 import { RepositoryService } from "../services/repositoryService"
+import { time } from "console"
 const VUE_QUERY = 'language:Vue stars:>=10'
 const githubService= new GithubService()
 const repositoryService = new RepositoryService()
@@ -21,9 +22,10 @@ const fetchGithubRepos =  async () => {
       let lastPushed: string | undefined = undefined;
   
       console.log(`${totalVueProjects} Vue projects to fetch`);
-  
+      
+      const totalVueProjects2 = 100
       // Check if we need to fetch more repositories
-      while (totalFetched < totalVueProjects) {
+      while (totalFetched < totalVueProjects2) {
         try {
           // Fetch the next batch of repositories using the creation_date filter (last fetched repository date)
           const repos = await githubService.getAllRepositories({
@@ -60,6 +62,7 @@ const saveGithubRepoInDb = async (repo: GithubApiRepo) => {
     try {
         const dbRepo = await repositoryService.getRepositoryByGithubId(repo.id);
         if(dbRepo && dbRepo.length > 0) {
+          //Todo for hasReadMe, isCiCdConfigured  hasTests add a new cron job
             await repositoryService.updateRepository(
                 repo.id,
                 {
@@ -78,15 +81,15 @@ const saveGithubRepoInDb = async (repo: GithubApiRepo) => {
                     creation_date: new Date(repo.creation_date),
                     last_updated: new Date(repo.last_updated),
                     owner_type: repo.owner_type || undefined,
-                    // has_readme: Boolean(repo.has_readme), // You would need logic to determine if the repo has a readme
-                    // ci_cd_configured: Boolean(repo.ci_cd_configured), // Logic to determine if CI/CD is configured
                     // has_tests: Boolean(repo.has_tests), // Logic to determine if tests exist
                     // is_trending: Boolean(repo.is_trending), // Logic to determine if the repo is trending
                     // stars_last_week: repo.stars_last_week || null,
                 }
             )
         } else {
-            const has_readme = await githubService.isReadMe(repo.owner_name, repo.name)
+            const has_readme = await githubService.hasReadMe(repo.owner_name, repo.name)
+            const ci_cd_configured = await githubService.isCiCdConfigured(repo.owner_name, repo.name)
+            const has_tests = await githubService.hasTests(repo.owner_name, repo.name)
              await repositoryService.createRepository({
                 github_id: repo.id,
                 name: repo.name,
@@ -104,8 +107,8 @@ const saveGithubRepoInDb = async (repo: GithubApiRepo) => {
                 last_updated: new Date(repo.last_updated),
                 owner_type: repo.owner_type || undefined,
                 has_readme,
-                // ci_cd_configured: Boolean(repo.ci_cd_configured), // Logic to determine if CI/CD is configured
-                // has_tests: Boolean(repo.has_tests), // Logic to determine if tests exist
+                ci_cd_configured,
+                has_tests,
                 // is_trending: Boolean(repo.is_trending), // Logic to determine if the repo is trending
             })
         }

@@ -1,7 +1,8 @@
-import {fetchRepositoriesBySearch, isReadMe} from '../api/githubApi'
+import {fetchRepositoriesBySearch, hasReadMe, isCiCdConfigured, hasTests} from '../api/githubApi'
 import { GithubApiRepo, GithubRepoQuery } from '../types/types';
 
 // Intermediate service method to fetch repositories
+//TODO MERGE LOGIC ALL CALLS FOR CONTENTS INTO ONE BIGGER METHOD IN SERVICE
 
 export class GithubService {
     async getAllRepositories(
@@ -28,6 +29,8 @@ export class GithubService {
                 last_pushed: repo.pushed_at,
                 open_issues_count: repo.open_issues,
                 owner_type: repo.owner.type || null,
+                has_readme: repo.has_readme,
+                ci_cd_configured: repo.ci_cd_configured
                 // ci_cd_configured: Boolean(repo.ci_cd_configured), // Logic to determine if CI/CD is configured
                 // has_tests: Boolean(repo.has_tests), // Logic to determine if tests exist
                 // is_trending: Boolean(repo.is_trending), // Logic to determine if the repo is trending
@@ -35,11 +38,27 @@ export class GithubService {
             }))
         }
       }
-    async isReadMe(ownerLogin: string, repoName: string){
+    async hasReadMe(ownerLogin: string, repoName: string){
         try {
-            return await isReadMe(ownerLogin, repoName)
+            return await hasReadMe(ownerLogin, repoName)
           } catch (error: any) {
             return false
           }
+    }
+
+    async isCiCdConfigured(ownerLogin: string, repoName: string){
+      try {
+          return await isCiCdConfigured(ownerLogin, repoName)
+        } catch (error: any) {
+          return false
+        }
+    }
+
+    async hasTests(ownerLogin: string, repoName: string){
+      try {
+          return await hasTests(ownerLogin, repoName)
+        } catch (error: any) {
+          return false
+        }
     }
 }
