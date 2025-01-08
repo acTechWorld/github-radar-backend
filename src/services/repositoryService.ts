@@ -165,6 +165,7 @@ async createRepository(data: RepositoryBody) {
   const newRepository = this.repositoryRepo.create({
     ...repositoryData,  // Destructure the rest of the repository fields
     stars_history: repositoryData.stars_count?.toString(),
+    forks_history: repositoryData.forks_count?.toString(),
     languages: existingLanguages,  // Associate the languages with the repository
   });
 
@@ -173,7 +174,7 @@ async createRepository(data: RepositoryBody) {
 }
 
   async updateRepository(id: number, data: RepositoryBody) {
-    const {languages, stars_count, ...otherDatas} = data
+    const {languages, stars_count, forks_count, ...otherDatas} = data
     const repository = await this.repositoryRepo.findOne({where: { id }, relations: ['languages']});
     if (!repository) return null;
     let mergedDatas: any = otherDatas
@@ -197,6 +198,14 @@ async createRepository(data: RepositoryBody) {
       mergedDatas.stars_history = [
         stars_count.toString(),
         ...starsHistoryList,
+      ].join(",")
+    }
+
+    if(forks_count) {
+      const forksistoryList = repository.forks_history?.split(',').slice(0,6)
+      mergedDatas.forks_history = [
+        forks_count.toString(),
+        ...forksistoryList,
       ].join(",")
     }
     const updatedRepository = this.repositoryRepo.merge(repository, mergedDatas);

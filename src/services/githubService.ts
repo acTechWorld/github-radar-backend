@@ -1,4 +1,4 @@
-import {fetchRepositoriesBySearch, hasReadMe, isCiCdConfigured, hasTests} from '../api/githubApi'
+import {fetchRepositoriesBySearch, fetchRepoContents} from '../api/githubApi'
 import { GithubApiRepo, GithubRepoQuery } from '../types/types';
 
 // Intermediate service method to fetch repositories
@@ -29,36 +29,93 @@ export class GithubService {
                 last_pushed: repo.pushed_at,
                 open_issues_count: repo.open_issues,
                 owner_type: repo.owner.type || null,
-                has_readme: repo.has_readme,
-                ci_cd_configured: repo.ci_cd_configured
-                // ci_cd_configured: Boolean(repo.ci_cd_configured), // Logic to determine if CI/CD is configured
-                // has_tests: Boolean(repo.has_tests), // Logic to determine if tests exist
-                // is_trending: Boolean(repo.is_trending), // Logic to determine if the repo is trending
-                // stars_last_week: repo.stars_last_week || null,
             }))
         }
+    }
+    checkReadMe(rootFiles: string[]): boolean {
+      return rootFiles.includes('README.md');
+    }
+      
+    checkCiCdConfigured(rootFiles: string[], ownerLogin: string, repoName: string): Promise<boolean> {
+        const ciCdFiles = [
+          '.travis.yml',
+          '.gitlab-ci.yml',
+          'Jenkinsfile',
+          'azure-pipelines.yml',
+          'docker-compose.yml',
+        ];
+      
+        // Check for CI/CD files in the root
+        if (ciCdFiles.some((ciCdFile) => rootFiles.includes(ciCdFile))) {
+          return Promise.resolve(true);
+        }
+      
+        // Check for workflows in `.github/workflows`
+        return fetchRepoContents(ownerLogin, repoName, '.github/workflows').then((workflows) => workflows.length > 0);
       }
-    async hasReadMe(ownerLogin: string, repoName: string){
-        try {
-            return await hasReadMe(ownerLogin, repoName)
-          } catch (error: any) {
-            return false
+      
+     async checkHasTests(rootFiles: string[], ownerLogin: string, repoName: string): Promise<boolean> {
+        const testFilesAndDirs = [
+          'test',
+          'tests',
+          'spec',
+          'specs',
+          'unittest',
+          '__tests__',
+          'pytest.ini',
+          'jest.config.js',
+          'karma.conf.js',
+          'mocha.opts',
+        ];
+      
+        // Check for test files or directories in the root
+        if (testFilesAndDirs.some((testFileOrDir) => rootFiles.includes(testFileOrDir))) {
+          return true;
+        }
+      
+        // Check for specific test directories recursively
+        const testDirectories = ['test', 'tests', '__tests__'];
+        for (const testDir of testDirectories) {
+          const testDirContents = await fetchRepoContents(ownerLogin, repoName, testDir);
+          if (testDirContents.length > 0) {
+            return true;
           }
-    }
-
-    async isCiCdConfigured(ownerLogin: string, repoName: string){
-      try {
-          return await isCiCdConfigured(ownerLogin, repoName)
-        } catch (error: any) {
-          return false
         }
-    }
-
-    async hasTests(ownerLogin: string, repoName: string){
-      try {
-          return await hasTests(ownerLogin, repoName)
+      
+        return false;
+      }
+      
+      async evaluateRepositoryFeatures(
+        ownerLogin: string,
+        repoName: string
+      ): Promise<{
+        hasReadMe: boolean;
+        ciCdConfigured: boolean;
+        hasTests: boolean;
+      }> {
+      
+        try {
+          const rootContents = await fetchRepoContents(ownerLogin, repoName);
+          const rootFiles = rootContents.map((file: any) => file.path);
+      
+          const hasReadMe = this.checkReadMe(rootFiles);
+          const ciCdConfigured = await this.checkCiCdConfigured(rootFiles, ownerLogin, repoName);
+          const hasTests = await this.checkHasTests(rootFiles, ownerLogin, repoName);
+      
+          return {
+            hasReadMe,
+            ciCdConfigured,
+            hasTests,
+          };
         } catch (error: any) {
-          return false
+          if (error.response?.status !== 404) {
+            console.error(`Error evaluating repository ${ownerLogin}/${repoName}:`, error);          
+          }
+          return {
+            hasReadMe: false,
+            ciCdConfigured: false,
+            hasTests: false,
+          };
         }
-    }
+      }
 }

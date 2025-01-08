@@ -45,6 +45,21 @@ export class Repository {
   @Column({ type: 'int' })
   forks_count!: number;
 
+  @Column({ type: 'varchar', length: 255 })
+  forks_history!: string;
+
+  @Column({ type: 'int' })
+  forks_last_week!: number;
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  getForksLastWeek() {
+    const listForks = this.forks_history?.split(',')
+    const lastForks = parseInt(listForks[0])
+    const firstForks = parseInt(listForks[listForks.length - 1])
+    this.forks_last_week = listForks && listForks.length > 0 && !isNaN(lastForks) && !isNaN(firstForks) ? lastForks - firstForks : 0
+  }
+
   @Column({ type: 'int', nullable: true })
   open_issues_count!: number;
 

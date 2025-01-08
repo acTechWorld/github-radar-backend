@@ -68,6 +68,4 @@ export interface RepositoryBody {
     last_pushed: string;  // ISO format string
     open_issues_count: number;
     owner_type: string;
-    has_readme: boolean;
-    ci_cd_configured: boolean;
   }
