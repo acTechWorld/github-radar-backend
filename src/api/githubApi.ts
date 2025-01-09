@@ -22,27 +22,12 @@ const fetchRepositoriesBySearch = async (qSearch: string, page = 1, perPage = 30
         Authorization: `Bearer ${GITHUB_TOKEN}`, // Include the token in the Authorization header
       },
     });
-    console.log(response.data.items.map((i:any) => i.pushed_at))
     return {
       total_count: response.data.total_count, 
       items: response.data.items
     }; // Return array of repositories
 }
 
-async function fetchRepoContents(ownerLogin: string, repoName: string, path: string = ''): Promise<any[]> {
-    if (!GITHUB_TOKEN) {
-      throw new Error('GitHub API token is not defined.');
-    }
-    const response = await axios.get(
-      `${GITHUB_API_URL}/repos/${ownerLogin}/${repoName}/contents${path ? `/${path}` : ''}`,
-      {
-        headers: {
-          Authorization: `Bearer ${GITHUB_TOKEN}`,
-        },
-      }
-    );
-    return response.data;
-}
 
 
-export { fetchRepositoriesBySearch, fetchRepoContents};
+export { fetchRepositoriesBySearch};

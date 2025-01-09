@@ -14,9 +14,6 @@ export interface RepositoryQuery {
     licenses?: string;
     owner_type?: string;
     open_issues_count?: string;
-    has_readme?: boolean;
-    ci_cd_configured?: boolean;
-    has_tests?: boolean;
     is_trending?: boolean;
     stars_last_week?: string;
   }
@@ -29,16 +26,16 @@ export interface RepositoryBody {
     owner_avatar_url?: string;
     stars_count: number;
     forks_count: number;
+    watchers_count: number;
     open_issues_count?: number;
     languages: string[]; // List of language names (strings)
     license?: string;
     topics?: string[];
     owner_type?: string; // 'Organization' or 'Individual'
-    has_readme?: boolean;
-    ci_cd_configured?: boolean;
-    has_tests?: boolean;
     is_trending?: boolean;
     stars_last_week?: number;
+    forks_last_week?: number;
+    watchers_last_week?: number;
     creation_date?: Date;
     last_updated?: Date;
     last_pushed?: Date;
@@ -58,6 +55,7 @@ export interface RepositoryBody {
     description: string | null;
     stars_count: number;
     forks_count: number;
+    watchers_count: number;
     html_url: string;
     owner_name: string;
     owner_avatar_url: string;
@@ -69,3 +67,10 @@ export interface RepositoryBody {
     open_issues_count: number;
     owner_type: string;
   }
+
+  export interface Thresholds {
+    stars_threshold: number;
+    forks_threshold: number;
+    watchers_threshold: number;
+  }
+  

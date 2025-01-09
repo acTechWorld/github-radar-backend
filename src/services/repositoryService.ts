@@ -1,13 +1,15 @@
 // src/services/repository.service.ts
-import { Repository } from '../models/repository';
+import { Repository } from '../models/Repository';
 import { AppDataSource } from '../db';
 import { Any, ArrayContains, Between, In, LessThanOrEqual, MoreThanOrEqual, ArrayOverlap, And, FindOperator } from 'typeorm';
 import { RepositoryBody, RepositoryQuery } from '../types/types';
-import { Language } from '../models/language';
+import { Language } from '../models/Language';
+import { TrendingMetric } from '../models/TrendingMetric';
 
 export class RepositoryService {
   private repositoryRepo = AppDataSource.getRepository(Repository);
   private languageRepo = AppDataSource.getRepository(Language);
+  private trendingMetricRepo = AppDataSource.getRepository(TrendingMetric);
 
   async getAllRepositories(queries: RepositoryQuery) {
     const where: any = {};
@@ -95,9 +97,6 @@ export class RepositoryService {
       const ownerTypeArray = queries.owner_type.split(',').map((license) => license.trim()); // Trim to handle spaces
       where.owner_type = Any(ownerTypeArray);
     }
-    if (queries.has_readme !== undefined) where.has_readme = queries.has_readme;
-    if (queries.ci_cd_configured !== undefined) where.ci_cd_configured = queries.ci_cd_configured;
-    if (queries.has_tests !== undefined) where.has_tests = queries.has_tests;
     if (queries.is_trending !== undefined) where.is_trending = queries.is_trending;
     if (queries.stars_last_week && !isNaN(parseInt(queries.stars_last_week))) {
       where.stars_last_week = MoreThanOrEqual(parseInt(queries.stars_last_week));
@@ -127,7 +126,14 @@ export class RepositoryService {
       }
     }
 
-    return await this.repositoryRepo.find({ where, relations: ['languages'] });
+    const repos =  await this.repositoryRepo.find({ where, relations: ['languages'] });
+    return await Promise.all(repos.map(async repo => {
+      const is_trending = await this.isTrending(repo)
+      return {
+        ...repo, 
+        is_trending
+      }
+    }))
   }
 
   async getRepositoryById(id: number) {
@@ -166,6 +172,7 @@ async createRepository(data: RepositoryBody) {
     ...repositoryData,  // Destructure the rest of the repository fields
     stars_history: repositoryData.stars_count?.toString(),
     forks_history: repositoryData.forks_count?.toString(),
+    watchers_history: repositoryData.watchers_count?.toString(),
     languages: existingLanguages,  // Associate the languages with the repository
   });
 
@@ -215,5 +222,22 @@ async createRepository(data: RepositoryBody) {
   async deleteRepository(id: number) {
     const result = await this.repositoryRepo.delete(id);
     return result.affected !== 0;
+  }
+
+  async isTrending(repo: Repository): Promise<boolean> {
+    const language = repo.languages[0]?.name 
+    const trendingMetric = await this.trendingMetricRepo.findOne({ where: { language } });
+    if (!trendingMetric) {
+      return false;
+    }
+    const stars_last_week = repo.stars_last_week ?? 0
+    const forks_last_week = repo.forks_last_week ?? 0
+    const watchers_last_week = repo.watchers_last_week ?? 0
+    return (
+      stars_last_week >= trendingMetric.min_star_growth ||
+      forks_last_week >= trendingMetric.min_fork_growth ||
+      watchers_last_week >= trendingMetric.min_watcher_growth ||
+      stars_last_week + forks_last_week + watchers_last_week >= trendingMetric.min_combined_growth
+    );
   }
 }

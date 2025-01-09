@@ -1,5 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, AfterLoad, BeforeInsert, BeforeUpdate } from 'typeorm';
-import { Language } from './language';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, AfterLoad, BeforeInsert, BeforeUpdate, ManyToOne } from 'typeorm';
+import { Language } from './Language';
 
 @Entity('repositories')
 export class Repository {
@@ -37,9 +37,13 @@ export class Repository {
   @BeforeUpdate()
   getStarsLastWeek() {
     const listStars = this.stars_history?.split(',')
-    const lastStars = parseInt(listStars[0])
-    const firstStars = parseInt(listStars[listStars.length - 1])
-    this.stars_last_week = listStars && listStars.length > 0 && !isNaN(lastStars) && !isNaN(firstStars) ? lastStars - firstStars : 0
+    if(listStars && listStars.length > 0) {
+      const lastStars = parseInt(listStars[0])
+      const firstStars = parseInt(listStars[listStars.length - 1])
+      this.stars_last_week = listStars && listStars.length > 0 && !isNaN(lastStars) && !isNaN(firstStars) ? lastStars - firstStars : 0
+    } else {
+      this.stars_last_week = 0 
+    }
   }
 
   @Column({ type: 'int' })
@@ -55,9 +59,35 @@ export class Repository {
   @BeforeUpdate()
   getForksLastWeek() {
     const listForks = this.forks_history?.split(',')
-    const lastForks = parseInt(listForks[0])
-    const firstForks = parseInt(listForks[listForks.length - 1])
-    this.forks_last_week = listForks && listForks.length > 0 && !isNaN(lastForks) && !isNaN(firstForks) ? lastForks - firstForks : 0
+    if(listForks && listForks?.length >0) {
+      const lastForks = parseInt(listForks[0])
+      const firstForks = parseInt(listForks[listForks.length - 1])
+      this.forks_last_week = listForks && listForks.length > 0 && !isNaN(lastForks) && !isNaN(firstForks) ? lastForks - firstForks : 0
+    } else {
+      this.forks_last_week = 0 
+    }
+  }
+
+  @Column({ type: 'int' })
+  watchers_count!: number;
+
+  @Column({ type: 'varchar', length: 255 })
+  watchers_history!: string;
+
+  @Column({ type: 'int' })
+  watchers_last_week!: number;
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  getFWatchersLastWeek() {
+    const listWatchers = this.watchers_history?.split(',')
+    if(listWatchers && listWatchers?.length >0) {
+      const lastWatchers = parseInt(listWatchers[0])
+      const firstWatchers = parseInt(listWatchers[listWatchers.length - 1])
+      this.watchers_last_week = listWatchers && listWatchers.length > 0 && !isNaN(lastWatchers) && !isNaN(firstWatchers) ? lastWatchers - firstWatchers : 0
+    } else {
+      this.watchers_last_week = 0
+    }
   }
 
   @Column({ type: 'int', nullable: true })
@@ -101,15 +131,6 @@ export class Repository {
 
   @Column({ type: 'varchar', length: 50, nullable: true })
   owner_type!: string; // 'Organization' or 'Individual'
-
-  @Column({ type: 'boolean', default: false })
-  has_readme!: boolean;
-
-  @Column({ type: 'boolean', default: false })
-  ci_cd_configured!: boolean;
-
-  @Column({ type: 'boolean', default: false })
-  has_tests!: boolean;
 
   @Column({ type: 'boolean', default: false })
   is_trending!: boolean;

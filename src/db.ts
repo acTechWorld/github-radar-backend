@@ -1,8 +1,8 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
-import { Repository } from './models/repository';
-import { Language } from './models/language';
-
+import { Repository } from './models/Repository';
+import { Language } from './models/Language';
+import { TrendingMetric } from './models/TrendingMetric';
 export const AppDataSource = new DataSource({
   type: 'postgres',
   host: 'localhost',
@@ -12,5 +12,5 @@ export const AppDataSource = new DataSource({
   database: 'project-m',
   synchronize: true, // Automatically sync database schema during development
   logging: false, // Logs SQL queries for debugging
-  entities: [Repository, Language], // Add all entity models here
+  entities: [Repository, Language, TrendingMetric], // Add all entity models here
 });

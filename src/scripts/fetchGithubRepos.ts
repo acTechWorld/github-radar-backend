@@ -1,10 +1,11 @@
 import { GithubService } from "../services/githubService"
 import { GithubApiRepo } from "../types/types"
 import { RepositoryService } from "../services/repositoryService"
-import { time } from "console"
+import { TrendingMetricService } from "../services/trendingMetricService"
 const VUE_QUERY = 'language:Vue stars:>=10'
 const githubService= new GithubService()
 const repositoryService = new RepositoryService()
+const trendingMetricService = new TrendingMetricService()
 
 const fetchGithubRepos =  async () => {
   console.log("init fetchGithubRepos");
@@ -22,9 +23,9 @@ const fetchGithubRepos =  async () => {
     let lastPushed: string | undefined = undefined;
 
     console.log(`${totalVueProjects} Vue projects to fetch`);
-    
+    const totalVueProjects2 = 1000
     // Check if we need to fetch more repositories
-    while (totalFetched < totalVueProjects) {
+    while (totalFetched < totalVueProjects2) {
       try {
         // Fetch the next batch of repositories using the creation_date filter (last fetched repository date)
         const repos = await githubService.getAllRepositories({
@@ -50,6 +51,10 @@ const fetchGithubRepos =  async () => {
       }
     }
 
+    const thresholds = await trendingMetricService.calculateTrendingThresholds('Vue')
+    console.log(thresholds)
+    await trendingMetricService.createOrUpdateTrendingMetric('Vue', thresholds)
+
     console.log("Finished fetching all repositories.");
   } catch (error: any) {
     console.error("Error initializing repository fetch:", error.message);
@@ -61,31 +66,29 @@ const saveGithubRepoInDb = async (repo: GithubApiRepo) => {
   const dbRepo = await repositoryService.getRepositoryByGithubId(repo.id);
   if(dbRepo && dbRepo.length > 0) {
     //Todo for hasReadMe, isCiCdConfigured  hasTests add a new cron job
-      await repositoryService.updateRepository(
-          repo.id,
-          {
-              github_id: repo.id,
-              name: repo.name,
-              description: repo.description || undefined,
-              html_url: repo.html_url,
-              owner_name: repo.owner_name,
-              owner_avatar_url: repo.owner_avatar_url || undefined,
-              stars_count: repo.stars_count,
-              forks_count: repo.forks_count,
-              open_issues_count: repo.open_issues_count || undefined,
-              languages: ['Vue'], 
-              license: repo.license || undefined,
-              topics: repo.topics || [],
-              creation_date: new Date(repo.creation_date),
-              last_updated: new Date(repo.last_updated),
-              owner_type: repo.owner_type || undefined,
-              // has_tests: Boolean(repo.has_tests), // Logic to determine if tests exist
-              // is_trending: Boolean(repo.is_trending), // Logic to determine if the repo is trending
-              // stars_last_week: repo.stars_last_week || null,
-          }
-      )
+    await repositoryService.updateRepository(
+      dbRepo[0].id,
+      {
+          github_id: repo.id,
+          name: repo.name,
+          description: repo.description || undefined,
+          html_url: repo.html_url,
+          owner_name: repo.owner_name,
+          owner_avatar_url: repo.owner_avatar_url || undefined,
+          stars_count: repo.stars_count,
+          forks_count: repo.forks_count,
+          watchers_count: repo.watchers_count,
+          open_issues_count: repo.open_issues_count || undefined,
+          languages: ['Vue'], 
+          license: repo.license || undefined,
+          topics: repo.topics || [],
+          creation_date: new Date(repo.creation_date),
+          last_updated: new Date(repo.last_updated),
+          owner_type: repo.owner_type || undefined,
+      }
+  )
   } else {
-      const features = await githubService.evaluateRepositoryFeatures(repo.owner_name, repo.name)
+      // const features = await githubService.evaluateRepositoryFeatures(repo.owner_name, repo.name)
       await repositoryService.createRepository({
         github_id: repo.id,
         name: repo.name,
@@ -95,6 +98,7 @@ const saveGithubRepoInDb = async (repo: GithubApiRepo) => {
         owner_avatar_url: repo.owner_avatar_url || undefined,
         stars_count: repo.stars_count,
         forks_count: repo.forks_count,
+        watchers_count: repo.watchers_count,
         open_issues_count: repo.open_issues_count || undefined,
         languages: ['Vue'], 
         license: repo.license || undefined,
@@ -102,9 +106,6 @@ const saveGithubRepoInDb = async (repo: GithubApiRepo) => {
         creation_date: new Date(repo.creation_date),
         last_updated: new Date(repo.last_updated),
         owner_type: repo.owner_type || undefined,
-        has_readme: features.hasReadMe,
-        ci_cd_configured: features.ciCdConfigured,
-        has_tests: features.hasTests,
           // is_trending: Boolean(repo.is_trending), // Logic to determine if the repo is trending
       })
   }
