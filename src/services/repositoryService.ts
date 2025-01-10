@@ -135,9 +135,16 @@ export class RepositoryService {
       }
     }))
   }
-
   async getRepositoryById(id: number) {
-    return await this.repositoryRepo.find({where: { id }, relations: ['languages']});
+    const repo =  await this.repositoryRepo.findOne({where: { id }, relations: ['languages']});
+    if(repo) {
+      const is_trending = await this.isTrending(repo)
+      return {
+        ...repo, 
+        is_trending
+      }
+    }
+    return null
   }
 
   async getRepositoryByGithubId(githubId: number) {
@@ -181,7 +188,7 @@ async createRepository(data: RepositoryBody) {
 }
 
   async updateRepository(id: number, data: RepositoryBody) {
-    const {languages, stars_count, forks_count, ...otherDatas} = data
+    const {languages, stars_count, forks_count,watchers_count, ...otherDatas} = data
     const repository = await this.repositoryRepo.findOne({where: { id }, relations: ['languages']});
     if (!repository) return null;
     let mergedDatas: any = otherDatas
@@ -215,6 +222,14 @@ async createRepository(data: RepositoryBody) {
         ...forksistoryList,
       ].join(",")
     }
+
+    if(watchers_count) {
+      const watchersistoryList = repository.watchers_history?.split(',').slice(0,6)
+      mergedDatas.watchers_history = [
+        watchers_count.toString(),
+        ...watchersistoryList,
+      ].join(",")
+    }
     const updatedRepository = this.repositoryRepo.merge(repository, mergedDatas);
     return await this.repositoryRepo.save(updatedRepository);
   }
@@ -225,19 +240,38 @@ async createRepository(data: RepositoryBody) {
   }
 
   async isTrending(repo: Repository): Promise<boolean> {
-    const language = repo.languages[0]?.name 
+    const language = repo.languages[0]?.name;
+  
+    // Fetch the trending metric for the repository's language
     const trendingMetric = await this.trendingMetricRepo.findOne({ where: { language } });
     if (!trendingMetric) {
-      return false;
+      return false; // If no metric exists for the language, the repo cannot be trending
     }
-    const stars_last_week = repo.stars_last_week ?? 0
-    const forks_last_week = repo.forks_last_week ?? 0
-    const watchers_last_week = repo.watchers_last_week ?? 0
-    return (
-      stars_last_week >= trendingMetric.min_star_growth ||
-      forks_last_week >= trendingMetric.min_fork_growth ||
-      watchers_last_week >= trendingMetric.min_watcher_growth ||
-      stars_last_week + forks_last_week + watchers_last_week >= trendingMetric.min_combined_growth
-    );
+  
+    // Maximum values for size normalization (you may fetch these from your trending metric or calculate dynamically)
+    const maxStars = trendingMetric.max_stars ?? 1; // Avoid division by 0
+    const maxForks = trendingMetric.max_forks ?? 1;
+    const maxWatchers = trendingMetric.max_watchers ?? 1;
+  
+    // Calculate the weighted scores
+    const sizeWeightStars = (repo.stars_count / maxStars) || 0;
+    const sizeWeightForks = (repo.forks_count / maxForks) || 0;
+    const sizeWeightWatchers = (repo.watchers_count / maxWatchers) || 0;
+  
+    const starsScore = (repo.stars_last_week ?? 0) / (1 + sizeWeightStars);
+    const forksScore = (repo.forks_last_week ?? 0) / (1 + sizeWeightForks);
+    const watchersScore = (repo.watchers_last_week ?? 0) / (1 + sizeWeightWatchers);
+  
+    const combinedScore = starsScore + forksScore + watchersScore;
+  
+    // Check against the thresholds for each metric
+    const isTrendingByStars = starsScore >= trendingMetric.stars_threshold;
+    const isTrendingByForks = forksScore >= trendingMetric.forks_threshold;
+    const isTrendingByWatchers = watchersScore >= trendingMetric.watchers_threshold;
+    const isTrendingByCombinedScore = combinedScore >= trendingMetric.combined_threshold;
+  
+    // Determine if the repository is trending
+    return isTrendingByStars || isTrendingByForks || isTrendingByWatchers || isTrendingByCombinedScore;
   }
+  
 }

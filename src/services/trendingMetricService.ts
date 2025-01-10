@@ -1,7 +1,7 @@
 import { Repository } from "../models/Repository";  // Assuming Repository is your TypeORM entity
 import { AppDataSource } from '../db';
 import { TrendingMetric } from '../models/TrendingMetric';
-import { Thresholds } from "../types/types";
+import { CalculatedTrendingMetrics } from "../types/types";
 
 export class TrendingMetricService {
   private repositoryRepo = AppDataSource.getRepository(Repository);
@@ -12,23 +12,19 @@ export class TrendingMetricService {
     return arr.reduce((sum, val) => sum + val, 0) / arr.length;
   }
 
-  private stdDev(arr: number[]): number {
-    const mean = this.average(arr);
-    return Math.sqrt(arr.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / arr.length);
-  }
-
   // Calculate the thresholds for stars, forks, and watchers with size-based weight
-  async calculateTrendingThresholds(language: string): Promise<Thresholds> {
+  async calculateTrendingMetrics(language: string): Promise<CalculatedTrendingMetrics> {
     // Fetch repositories with at least two values in history fields
-    const repositories = await this.repositoryRepo
+    let repositories = await this.repositoryRepo
       .createQueryBuilder("repository")
       .innerJoinAndSelect("repository.languages", "language", "language.name = :language", { language })
-      .where(
-        `LENGTH(repository.stars_history) - LENGTH(REPLACE(repository.stars_history, ',', '')) >= 1 AND
-         LENGTH(repository.forks_history) - LENGTH(REPLACE(repository.forks_history, ',', '')) >= 1 AND
-         LENGTH(repository.watchers_history) - LENGTH(REPLACE(repository.watchers_history, ',', '')) >= 1`
-      )
       .getMany();
+      
+    repositories = repositories.filter(repo => {
+      return (repo.stars_last_week && repo.stars_history.split(",")?.length > 1) || 
+         (repo.forks_last_week && repo.forks_history.split(",")?.length > 1) || 
+         (repo.watchers_last_week && repo.watchers_history.split(",")?.length > 1)
+    })
 
     if (repositories.length === 0) {
       throw new Error(`No repositories with sufficient history found for language: ${language}`);
@@ -47,47 +43,77 @@ export class TrendingMetricService {
       .map((repo) => repo.watchers_last_week)
       .filter((watchers_last_week) => watchers_last_week !== null && watchers_last_week !== undefined);
 
-    // Calculate total sum of metrics for normalization (total metrics)
-    const totalStars = repositories.reduce((sum, repo) => sum + repo.stars_count, 0);
-    const totalForks = repositories.reduce((sum, repo) => sum + repo.forks_count, 0);
-    const totalWatchers = repositories.reduce((sum, repo) => sum + repo.watchers_count, 0);
-
     // Calculate the maximum value of each metric for scaling
     const maxStars = Math.max(...repositories.map((repo) => repo.stars_count));
     const maxForks = Math.max(...repositories.map((repo) => repo.forks_count));
     const maxWatchers = Math.max(...repositories.map((repo) => repo.watchers_count));
 
-    // Calculate the scaling factor for each metric (this reflects the size of the metric)
-    const scalingFactorStars = maxStars / totalStars;
-    const scalingFactorForks = maxForks / totalForks;
-    const scalingFactorWatchers = maxWatchers / totalWatchers;
 
-    // Calculate thresholds for each metric (stars, forks, watchers) with weighted scaling
-    const starsThreshold = this.average(starsChanges) + 2 * this.stdDev(starsChanges) * scalingFactorStars;
-    const forksThreshold = this.average(forksChanges) + 2 * this.stdDev(forksChanges) * scalingFactorForks;
-    const watchersThreshold = this.average(watchersChanges) + 2 * this.stdDev(watchersChanges) * scalingFactorWatchers;
+    const calculateWeightedTrendingScore = (repo: Repository) => {
+      const sizeWeightStars = (repo.stars_count / maxStars) || 0;
+      const sizeWeightForks = (repo.forks_count / maxForks) || 0;
+      const sizeWeightWatchers = (repo.watchers_count / maxWatchers) || 0;
+  
+      const starsScore = repo.stars_last_week / (1 + sizeWeightStars);
+      const forksScore = repo.forks_last_week / (1 + sizeWeightForks);
+      const watchersScore = repo.watchers_last_week / (1 + sizeWeightWatchers);
+  
+      return {
+        stars: starsScore,
+        forks: forksScore,
+        watchers: watchersScore,
+        combined: starsScore + forksScore + watchersScore
+      };
+    };
+  
 
-    // Return the thresholds
-    const thresholds: Thresholds = {
+      // Calculate scores for each repository
+    const repositoriesWithScores = repositories.map(repo => ({
+      ...repo,
+      weightedTrendingScore: calculateWeightedTrendingScore(repo),
+    }));
+
+    const calculateThresholds = (repositories: any, key: string) => {
+      if (repositories.length === 0) {
+        return 0; // Return a default threshold if no data is available
+      }
+      const sortedRepositories = [...repositories].sort((a, b) => b.weightedTrendingScore[key] - a.weightedTrendingScore[key]);
+      const top10Percent = sortedRepositories.slice(0, Math.ceil(sortedRepositories.length * 0.1));
+      return top10Percent.length > 0 ? top10Percent[top10Percent.length - 1].weightedTrendingScore[key] : 0;
+    };
+    
+    const starsThreshold = calculateThresholds(repositoriesWithScores, 'stars');
+    const forksThreshold = calculateThresholds(repositoriesWithScores, 'forks');
+    const watchersThreshold = calculateThresholds(repositoriesWithScores, 'watchers');
+    const combinedThreshold = calculateThresholds(repositoriesWithScores, 'combined');
+
+
+    // Return the trendingMetrics
+    const trendingMetrics: CalculatedTrendingMetrics = {
       stars_threshold: starsThreshold,
       forks_threshold: forksThreshold,
-      watchers_threshold: watchersThreshold
+      watchers_threshold: watchersThreshold,
+      combined_threshold: combinedThreshold,
+      max_stars: maxStars,
+      max_forks: maxForks,
+      max_watchers: maxWatchers
     };
-
-    return thresholds;
+    return trendingMetrics;
   }
 
   // Create or update trending metric for the language
-  async createOrUpdateTrendingMetric(language: string, thresholds: Thresholds): Promise<void> {
+  async createOrUpdateTrendingMetric(language: string, calculatedTrendingMetrics: CalculatedTrendingMetrics): Promise<void> {
     // Try to find if there's an existing entry for the language
     const existingMetric = await this.trendingMetricRepo.findOne({ where: { language } });
-
     if (existingMetric) {
       // If the metric already exists, update it
-      existingMetric.min_star_growth = thresholds.stars_threshold;
-      existingMetric.min_fork_growth = thresholds.forks_threshold;
-      existingMetric.min_watcher_growth = thresholds.watchers_threshold;
-      existingMetric.min_combined_growth = existingMetric.min_star_growth + existingMetric.min_fork_growth + existingMetric.min_watcher_growth
+      existingMetric.stars_threshold = calculatedTrendingMetrics.stars_threshold;
+      existingMetric.forks_threshold = calculatedTrendingMetrics.forks_threshold;
+      existingMetric.watchers_threshold = calculatedTrendingMetrics.watchers_threshold;
+      existingMetric.combined_threshold = calculatedTrendingMetrics.combined_threshold;
+      existingMetric.max_stars = calculatedTrendingMetrics.max_stars;
+      existingMetric.max_forks = calculatedTrendingMetrics.max_forks;
+      existingMetric.max_watchers = calculatedTrendingMetrics.max_watchers;
       // Save the updated metric
       await this.trendingMetricRepo.save(existingMetric);
       console.log(`Updated trending metric for language: ${language}`);
@@ -95,11 +121,13 @@ export class TrendingMetricService {
       // If it doesn't exist, create a new entry
       const newTrendingMetric = new TrendingMetric();
       newTrendingMetric.language = language;
-      newTrendingMetric.min_star_growth = thresholds.stars_threshold;
-      newTrendingMetric.min_fork_growth = thresholds.forks_threshold;
-      newTrendingMetric.min_watcher_growth = thresholds.watchers_threshold;
-      newTrendingMetric.min_combined_growth = newTrendingMetric.min_star_growth + newTrendingMetric.min_fork_growth + newTrendingMetric.min_watcher_growth
-
+      newTrendingMetric.stars_threshold = calculatedTrendingMetrics.stars_threshold;
+      newTrendingMetric.forks_threshold = calculatedTrendingMetrics.forks_threshold;
+      newTrendingMetric.watchers_threshold = calculatedTrendingMetrics.watchers_threshold;
+      newTrendingMetric.combined_threshold = calculatedTrendingMetrics.combined_threshold;
+      newTrendingMetric.max_stars = calculatedTrendingMetrics.max_stars;
+      newTrendingMetric.max_forks = calculatedTrendingMetrics.max_forks;
+      newTrendingMetric.max_watchers = calculatedTrendingMetrics.max_watchers;
       // Save the new metric
       await this.trendingMetricRepo.save(newTrendingMetric);
       console.log(`Created new trending metric for language: ${language}`);

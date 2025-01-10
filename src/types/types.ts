@@ -68,9 +68,13 @@ export interface RepositoryBody {
     owner_type: string;
   }
 
-  export interface Thresholds {
+  export interface CalculatedTrendingMetrics {
     stars_threshold: number;
     forks_threshold: number;
     watchers_threshold: number;
+    combined_threshold: number;
+    max_stars: number;
+    max_forks: number;
+    max_watchers: number;
   }
   

@@ -8,17 +8,26 @@ export class TrendingMetric {
   @Column({ type: 'varchar', length: 100, unique: true })
   language!: string; // e.g., "JavaScript", "Python"
 
+  @Column({ type: 'float', default: 0.5 })
+  stars_threshold!: number; // Minimum stars growth score in a week to be trending
+
+  @Column({ type: 'float', default: 0.5 })
+  forks_threshold!: number; // Minimum forks growth score in a week to be trending
+
+  @Column({ type: 'float', default: 0.5 })
+  watchers_threshold!: number; // Minimum watchers growth score in a week to be trending
+
+  @Column({ type: 'float', default: 1.5 })
+  combined_threshold!: number; // Minimum combined growth score of all metrics to be trending
+
   @Column({ type: 'int', default: 50 })
-  min_star_growth!: number; // Minimum stars growth in a week to be trending
+  max_stars!: number; // Minimum stars growth score in a week to be trending
 
-  @Column({ type: 'int', default: 10 })
-  min_fork_growth!: number; // Minimum forks growth in a week to be trending
+  @Column({ type: 'int', default: 50 })
+  max_forks!: number; // Minimum forks growth score in a week to be trending
 
-  @Column({ type: 'int', default: 5 })
-  min_watcher_growth!: number; // Minimum watchers growth in a week to be trending
-
-  @Column({ type: 'int', default: 70 })
-  min_combined_growth!: number; // Minimum combined growth of all metrics to be trending
+  @Column({ type: 'int', default: 50 })
+  max_watchers!: number; // Minimum watchers growth score in a week to be trending
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at!: Date;

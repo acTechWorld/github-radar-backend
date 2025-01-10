@@ -25,7 +25,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
   try {
     const repository = await repositoryService.getRepositoryById(id);
-    if (!repository || repository.length === 0) {
+    if (!repository) {
       res.status(404).json({ message: 'Repository not found' });
       return
     }
