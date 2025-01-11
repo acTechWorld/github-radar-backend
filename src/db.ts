@@ -1,8 +1,8 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
-import { Repository } from './models/Repository';
-import { Language } from './models/Language';
-import { TrendingMetric } from './models/TrendingMetric';
+import { Repository } from '@/models/Repository';
+import { Language } from '@/models/Language';
+import { TrendingMetric } from '@/models/TrendingMetric';
 export const AppDataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST ?? 'localhost',

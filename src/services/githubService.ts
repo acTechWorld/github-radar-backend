@@ -1,5 +1,5 @@
-import {fetchRepositoriesBySearch} from '../api/githubApi'
-import { GithubApiRepo, GithubRepoQuery } from '../types/types';
+import {fetchRepositoriesBySearch} from '@/api/githubApi'
+import { GithubApiRepo, GithubRepoQuery } from '@/types/types';
 
 // Intermediate service method to fetch repositories
 

@@ -1,7 +1,7 @@
-import { GithubService } from "../services/githubService"
-import { GithubApiRepo } from "../types/types"
-import { RepositoryService } from "../services/repositoryService"
-import { TrendingMetricService } from "../services/trendingMetricService"
+import { GithubService } from "@/services/githubService"
+import { GithubApiRepo } from "@/types/types"
+import { RepositoryService } from "@/services/repositoryService"
+import { TrendingMetricService } from "@/services/trendingMetricService"
 const VUE_QUERY = 'language:Vue stars:>=10'
 const githubService= new GithubService()
 const repositoryService = new RepositoryService()

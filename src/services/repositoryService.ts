@@ -1,10 +1,10 @@
 // src/services/repository.service.ts
-import { Repository } from '../models/Repository';
+import { Repository } from '@/models/Repository';
 import { AppDataSource } from '../db';
 import { Any, ArrayContains, Between, In, LessThanOrEqual, MoreThanOrEqual, ArrayOverlap, And, FindOperator } from 'typeorm';
-import { RepositoryBody, RepositoryQuery } from '../types/types';
-import { Language } from '../models/Language';
-import { TrendingMetric } from '../models/TrendingMetric';
+import { RepositoryBody, RepositoryQuery } from '@/types/types';
+import { Language } from '@/models/Language';
+import { TrendingMetric } from '@/models/TrendingMetric';
 
 export class RepositoryService {
   private repositoryRepo = AppDataSource.getRepository(Repository);

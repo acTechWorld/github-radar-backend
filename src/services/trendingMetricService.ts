@@ -1,7 +1,7 @@
-import { Repository } from "../models/Repository";  // Assuming Repository is your TypeORM entity
+import { Repository } from "@/models/Repository";  // Assuming Repository is your TypeORM entity
 import { AppDataSource } from '../db';
-import { TrendingMetric } from '../models/TrendingMetric';
-import { CalculatedTrendingMetrics } from "../types/types";
+import { TrendingMetric } from '@/models/TrendingMetric';
+import { CalculatedTrendingMetrics } from "@/types/types";
 
 export class TrendingMetricService {
   private repositoryRepo = AppDataSource.getRepository(Repository);

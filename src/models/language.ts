@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany } from 'typeorm';
-import { Repository } from './Repository';
+import { Repository } from '@/models/Repository';
 
 @Entity('languages')
 export class Language {

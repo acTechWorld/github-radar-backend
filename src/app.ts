@@ -2,9 +2,9 @@ import express, { Application } from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
 import { AppDataSource } from './db';
-import repositoryRoutes from './routes/repositoryRoutes';
-import languageRoutes from './routes/languageRoutes';
-import githubRoutes from './routes/githubRoutes';
+import repositoryRoutes from '@/routes/repositoryRoutes';
+import languageRoutes from '@/routes/languageRoutes';
+import githubRoutes from '@/routes/githubRoutes';
 
 const app: Application = express();
 app.use(cors());

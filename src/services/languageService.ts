@@ -1,6 +1,6 @@
 // src/services/language.service.ts
 import { AppDataSource } from '../db';
-import { Language } from '../models/Language';
+import { Language } from '@/models/Language';
 
 export class LanguageService {
   private languageRepository = AppDataSource.getRepository(Language);
