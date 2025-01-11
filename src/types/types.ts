@@ -5,6 +5,7 @@ export interface RepositoryQuery {
     languagesOperation?: Operation;
     stars?: string;
     forks?: string;
+    watchers?: string;
     created_after?: string; // ISO date strings
     created_before?: string;
     updated_after?: string;
@@ -12,10 +13,12 @@ export interface RepositoryQuery {
     topics?: string;
     topicsOperation?: Operation;
     licenses?: string;
-    owner_type?: string;
+    owner_types?: string;
     open_issues_count?: string;
     is_trending?: boolean;
     stars_last_week?: string;
+    page: string;
+    limit: string;
   }
 export interface RepositoryBody {
     github_id: number;

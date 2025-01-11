@@ -5,11 +5,11 @@ import { Language } from './models/Language';
 import { TrendingMetric } from './models/TrendingMetric';
 export const AppDataSource = new DataSource({
   type: 'postgres',
-  host: 'localhost',
-  port: 5432,
-  username: 'postgres',
-  password: 'root',
-  database: 'project-m',
+  host: process.env.DB_HOST ?? 'localhost',
+  port: parseInt(process.env.DB_PORT ?? '5432'),
+  username: process.env.DB_USER_NAME ?? 'postgres',
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   synchronize: true, // Automatically sync database schema during development
   logging: false, // Logs SQL queries for debugging
   entities: [Repository, Language, TrendingMetric], // Add all entity models here

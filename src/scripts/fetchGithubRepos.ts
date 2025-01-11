@@ -7,48 +7,65 @@ const githubService= new GithubService()
 const repositoryService = new RepositoryService()
 const trendingMetricService = new TrendingMetricService()
 
+const waitXms = async (Xms: number) => {
+  return new Promise(res => setTimeout(res, Xms))
+}
+
 const fetchGithubRepos =  async () => {
   console.log("init fetchGithubRepos");
   console.log("init fetching vue projects");
 
   try {
     // Fetch the first batch of repositories to get the total count and the first set of repositories
-    // const { total_count: totalVueProjects } = await githubService.getAllRepositories({
-    //   qSearch: VUE_QUERY,
-    //   perPage: 1, // Fetch only the count
-    //   page: 1,    // Fetch the first page (only for the count)
-    // });
+    const { total_count: totalVueProjects } = await githubService.getAllRepositories({
+      qSearch: VUE_QUERY,
+      perPage: 1, // Fetch only the count
+      page: 1,    // Fetch the first page (only for the count)
+    });
     
-    // let totalFetched = 0;
-    // let lastPushed: string | undefined = undefined;
+    let totalFetched = 0;
+    let retryNumber = 0;
+    let lastPushed: string | undefined = undefined;
 
-    // console.log(`${totalVueProjects} Vue projects to fetch`);
-    // // Check if we need to fetch more repositories
-    // while (totalFetched < totalVueProjects) {
-    //   try {
-    //     // Fetch the next batch of repositories using the creation_date filter (last fetched repository date)
-    //     const repos = await githubService.getAllRepositories({
-    //       qSearch: lastPushed ? `language:Vue stars:>=10 pushed:<=${lastPushed}` : VUE_QUERY,
-    //       perPage: 100,
-    //       sort: 'updated', // Filter based on the last creation date
-    //     });
+    console.log(`${totalVueProjects} Vue projects to fetch`);
+    // Check if we need to fetch more repositories
+    while (totalFetched < totalVueProjects) {
+      try {
+        // Fetch the next batch of repositories using the creation_date filter (last fetched repository date)
+        const repos = await githubService.getAllRepositories({
+          qSearch: lastPushed ? `language:Vue stars:>=10 pushed:<=${lastPushed}` : VUE_QUERY,
+          perPage: 100,
+          sort: 'updated', // Filter based on the last creation date
+        });
 
-    //     // Process each fetched repository (e.g., save to DB)
-    //     repos.items.forEach((repo) => saveGithubRepoInDb(repo, 'Vue'));
-    //     totalFetched += repos.items.length; // Increment the count based on fetched items
+        // Process each fetched repository (e.g., save to DB)
+        repos.items.forEach((repo) => saveGithubRepoInDb(repo, 'Vue'));
+        totalFetched += repos.items.length; // Increment the count based on fetched items
 
-    //     console.log(`Fetched: ${totalFetched} repositories`);
+        console.log(`Fetched: ${totalFetched} repositories`);
 
-    //     // Update the `lastCreationDate` with the most recent repository's `created_at`
-    //     if (repos.items.length > 0) {
-    //       lastPushed = repos.items.sort((a,b) => (new Date(b.last_pushed) as any) - (new Date(a.last_pushed) as any))?.[repos.items.length - 1].last_pushed;
-    //     }
+        // Update the `lastCreationDate` with the most recent repository's `created_at`
+        if (repos.items.length > 0) {
+          lastPushed = repos.items.sort((a,b) => (new Date(b.last_pushed) as any) - (new Date(a.last_pushed) as any))?.[repos.items.length - 1].last_pushed;
+        }
+        retryNumber = 0
         
-    //   } catch (error: any) {
-    //     console.error("Error fetching repositories:", error.message);
-    //     break; // Optionally break out of the loop if an error occurs
-    //   }
-    // }
+      } catch (error: any) {
+        if(error.status === "403") {
+          if(retryNumber < 10) {
+            retryNumber += 1
+            console.error(`Error fetching repos, (403) wait 5mins and retry (retry number ${retryNumber}):`, error.message);
+            await waitXms(5 * 60 * 1000)
+          } else {
+            console.error("Error fetching repos, (403) max number of retry attempted => finsh job:", error.message);
+            break;
+          }
+        } else {
+          console.error("Error fetching repos (not 403):", error.message);
+          break
+        }
+      }
+    }
 
     const calculatedTrendingMetrics = await trendingMetricService.calculateTrendingMetrics('Vue')
     await trendingMetricService.createOrUpdateTrendingMetric('Vue', calculatedTrendingMetrics)

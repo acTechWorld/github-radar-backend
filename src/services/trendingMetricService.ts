@@ -7,11 +7,6 @@ export class TrendingMetricService {
   private repositoryRepo = AppDataSource.getRepository(Repository);
   private trendingMetricRepo = AppDataSource.getRepository(TrendingMetric);
 
-  // Helper functions to calculate average and standard deviation
-  private average(arr: number[]): number {
-    return arr.reduce((sum, val) => sum + val, 0) / arr.length;
-  }
-
   // Calculate the thresholds for stars, forks, and watchers with size-based weight
   async calculateTrendingMetrics(language: string): Promise<CalculatedTrendingMetrics> {
     // Fetch repositories with at least two values in history fields

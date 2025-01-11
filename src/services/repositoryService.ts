@@ -37,6 +37,20 @@ export class RepositoryService {
         where.forks_count = LessThanOrEqual(max);
       }
     }
+
+    if (queries.watchers) {
+      const [min, max] = queries.watchers.split('-').map(Number);
+    
+      if (!isNaN(min) && !isNaN(max)) {
+        where.watchers_count = Between(min, max);
+      } else if (!isNaN(min)) {
+        // If only min is valid, apply MoreThanOrEqual
+        where.watchers_count = MoreThanOrEqual(min);
+      } else if (!isNaN(max)) {
+        // If only max is valid, apply LessThanOrEqual
+        where.watchers_count = LessThanOrEqual(max);
+      }
+    }
     
     if (queries.open_issues_count) {
       const [min, max] = queries.open_issues_count.split('-').map(Number);
@@ -51,6 +65,7 @@ export class RepositoryService {
         where.open_issues_count = LessThanOrEqual(max);
       }
     }
+
     if (queries.created_after || queries.created_before) {
       const [min, max] = [
         queries.created_after ? new Date(queries.created_after) : undefined,
@@ -93,8 +108,8 @@ export class RepositoryService {
       const licensesArray = queries.licenses.split(',').map((license) => license.trim()); // Trim to handle spaces
       where.license = Any(licensesArray);
     }
-    if (queries.owner_type) {
-      const ownerTypeArray = queries.owner_type.split(',').map((license) => license.trim()); // Trim to handle spaces
+    if (queries.owner_types) {
+      const ownerTypeArray = queries.owner_types.split(',').map((license) => license.trim()); // Trim to handle spaces
       where.owner_type = Any(ownerTypeArray);
     }
     if (queries.is_trending !== undefined) where.is_trending = queries.is_trending;
@@ -126,14 +141,33 @@ export class RepositoryService {
       }
     }
 
-    const repos =  await this.repositoryRepo.find({ where, relations: ['languages'] });
-    return await Promise.all(repos.map(async repo => {
-      const is_trending = await this.isTrending(repo)
-      return {
-        ...repo, 
-        is_trending
-      }
-    }))
+    // Pagination parameters
+    const page = parseInt(queries.page) || 1;
+    const limit = parseInt(queries.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const totalCount = await this.repositoryRepo.count({ where });
+    const totalPages = Math.ceil(totalCount / limit);
+  
+    const repos =  await this.repositoryRepo.find({ 
+      where, 
+      relations: ['languages'], 
+      skip,
+      take: limit 
+    });
+    return {
+      totalCount,
+      totalPages,
+      currentPage: page,
+      limit,
+      items: await Promise.all(repos.map(async repo => {
+        const is_trending = await this.isTrending(repo)
+        return {
+          ...repo, 
+            is_trending
+        }
+      }))
+    }
   }
   async getRepositoryById(id: number) {
     const repo =  await this.repositoryRepo.findOne({where: { id }, relations: ['languages']});
