@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TrendingMetricService = void 0;
-const Repository_1 = require("@/models/Repository"); // Assuming Repository is your TypeORM entity
+const Repository_1 = require("../models/Repository"); // Assuming Repository is your TypeORM entity
 const db_1 = require("../db");
-const TrendingMetric_1 = require("@/models/TrendingMetric");
+const TrendingMetric_1 = require("../models/TrendingMetric");
 class TrendingMetricService {
     repositoryRepo = db_1.AppDataSource.getRepository(Repository_1.Repository);
     trendingMetricRepo = db_1.AppDataSource.getRepository(TrendingMetric_1.TrendingMetric);

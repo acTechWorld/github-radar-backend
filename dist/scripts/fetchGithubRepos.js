@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fetchGithubRepos = void 0;
-const githubService_1 = require("@/services/githubService");
-const repositoryService_1 = require("@/services/repositoryService");
-const trendingMetricService_1 = require("@/services/trendingMetricService");
+const githubService_1 = require("../services/githubService");
+const repositoryService_1 = require("../services/repositoryService");
+const trendingMetricService_1 = require("../services/trendingMetricService");
 const VUE_QUERY = 'language:Vue stars:>=10';
 const githubService = new githubService_1.GithubService();
 const repositoryService = new repositoryService_1.RepositoryService();

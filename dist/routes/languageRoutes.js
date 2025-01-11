@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 // src/routes/language.routes.ts
 const express_1 = require("express");
-const languageService_1 = require("@/services/languageService");
+const languageService_1 = require("../services/languageService");
 const router = (0, express_1.Router)();
 const languageService = new languageService_1.LanguageService();
 // GET /languages - Get all languages

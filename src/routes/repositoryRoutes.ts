@@ -1,6 +1,6 @@
 // src/routes/repository.routes.ts
 import { Router, Request, Response } from 'express';
-import { RepositoryService } from '@/services/repositoryService';
+import { RepositoryService } from '../services/repositoryService';
 
 const router = Router();
 const repositoryService = new RepositoryService();

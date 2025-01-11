@@ -6,8 +6,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
-    "dev": "ts-node -r tsconfig-paths/register src/server.ts",
-    "reset:db": "ts-node -r tsconfig-paths/register src/scripts/resetDatabase.ts",
+    "dev": "ts-node src/server.ts",
+    "reset:db": "ts-node src/scripts/resetDatabase.ts",
     "dev:reset": "npm run reset:db && npm run dev"
   },
   "keywords": [],
@@ -16,7 +16,6 @@
   "dependencies": {
     "axios": "^1.7.9",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "pg": "^8.13.1",
     "pg-hstore": "^2.3.4",
@@ -29,7 +28,6 @@
     "@types/node": "^22.10.5",
     "prettier": "^3.4.2",
     "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.2"
   }
 }

@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.LanguageService = void 0;
 // src/services/language.service.ts
 const db_1 = require("../db");
-const Language_1 = require("@/models/Language");
+const Language_1 = require("../models/Language");
 class LanguageService {
     languageRepository = db_1.AppDataSource.getRepository(Language_1.Language);
     async getAllLanguages() {

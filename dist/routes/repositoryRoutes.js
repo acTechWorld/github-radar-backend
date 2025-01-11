@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 // src/routes/repository.routes.ts
 const express_1 = require("express");
-const repositoryService_1 = require("@/services/repositoryService");
+const repositoryService_1 = require("../services/repositoryService");
 const router = (0, express_1.Router)();
 const repositoryService = new repositoryService_1.RepositoryService();
 // GET /repositories - Get all repositories

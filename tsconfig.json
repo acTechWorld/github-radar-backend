@@ -7,12 +7,12 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "skipLibCheck": true,
-    "outDir": "./dist",
-    "baseUrl": "./", 
+    "outDir": "./dist",      // Output folder
+    "baseUrl": "./",         // Base URL for module resolution
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"]       // Alias for 'src'
     }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"],   // Include all files in 'src'
+  "exclude": ["node_modules", "dist"] // Exclude 'node_modules' and 'dist'
 }

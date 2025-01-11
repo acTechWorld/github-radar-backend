@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const githubService_1 = require("@/services/githubService");
-const fetchGithubRepos_1 = require("@/scripts/fetchGithubRepos");
+const githubService_1 = require("../services/githubService");
+const fetchGithubRepos_1 = require("../scripts/fetchGithubRepos");
 const router = (0, express_1.Router)();
 const githubService = new githubService_1.GithubService();
 router.get('/', async (req, res) => {

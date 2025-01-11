@@ -2,11 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RepositoryService = void 0;
 // src/services/repository.service.ts
-const Repository_1 = require("@/models/Repository");
+const Repository_1 = require("../models/Repository");
 const db_1 = require("../db");
 const typeorm_1 = require("typeorm");
-const Language_1 = require("@/models/Language");
-const TrendingMetric_1 = require("@/models/TrendingMetric");
+const Language_1 = require("../models/Language");
+const TrendingMetric_1 = require("../models/TrendingMetric");
 class RepositoryService {
     repositoryRepo = db_1.AppDataSource.getRepository(Repository_1.Repository);
     languageRepo = db_1.AppDataSource.getRepository(Language_1.Language);

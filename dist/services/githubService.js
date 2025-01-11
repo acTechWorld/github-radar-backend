@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GithubService = void 0;
-const githubApi_1 = require("@/api/githubApi");
+const githubApi_1 = require("../api/githubApi");
 // Intermediate service method to fetch repositories
 class GithubService {
     async getAllRepositories(queries) {

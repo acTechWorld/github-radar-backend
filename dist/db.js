@@ -3,9 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppDataSource = void 0;
 require("reflect-metadata");
 const typeorm_1 = require("typeorm");
-const Repository_1 = require("@/models/Repository");
-const Language_1 = require("@/models/Language");
-const TrendingMetric_1 = require("@/models/TrendingMetric");
+const Repository_1 = require("./models/Repository");
+const Language_1 = require("./models/Language");
+const TrendingMetric_1 = require("./models/TrendingMetric");
 exports.AppDataSource = new typeorm_1.DataSource({
     type: 'postgres',
     host: process.env.DB_HOST ?? 'localhost',

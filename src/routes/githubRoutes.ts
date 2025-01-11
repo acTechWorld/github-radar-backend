@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { GithubService } from '@/services/githubService';
-import { fetchGithubRepos } from '@/scripts/fetchGithubRepos'
+import { GithubService } from '../services/githubService';
+import { fetchGithubRepos } from '../scripts/fetchGithubRepos'
 const router = Router();
 const githubService = new GithubService();
 

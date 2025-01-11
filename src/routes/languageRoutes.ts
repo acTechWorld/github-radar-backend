@@ -1,6 +1,6 @@
 // src/routes/language.routes.ts
 import { Router } from 'express';
-import { LanguageService } from '@/services/languageService';
+import { LanguageService } from '../services/languageService';
 
 const router = Router();
 const languageService = new LanguageService();
