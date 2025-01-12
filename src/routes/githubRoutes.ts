@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
 
 router.get('/fetchGithubRepos', async (req, res) => {
     try {
-      fetchGithubRepos();
+      fetchGithubRepos(req.query.query as string, req.query.language as string);
       res.json('Script launched');
     } catch (error: any) {
       res.status(500).json({ message: 'Error starting script', error:  error.message ?? error });

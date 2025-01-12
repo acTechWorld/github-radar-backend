@@ -1,7 +1,7 @@
 // src/services/repository.service.ts
 import { Repository } from '../models/Repository';
 import { AppDataSource } from '../db';
-import { Any, ArrayContains, Between, In, LessThanOrEqual, MoreThanOrEqual, ArrayOverlap, And, FindOperator } from 'typeorm';
+import { Any, ArrayContains, Between, In, LessThanOrEqual, MoreThanOrEqual, ArrayOverlap, And, FindOperator, Like } from 'typeorm';
 import { RepositoryBody, RepositoryQuery } from '../types/types';
 import { Language } from '../models/Language';
 import { TrendingMetric } from '../models/TrendingMetric';
@@ -13,6 +13,15 @@ export class RepositoryService {
 
   async getAllRepositories(queries: RepositoryQuery) {
     const where: any = {};
+    const page = parseInt(queries.page) || 1;
+    const limit = parseInt(queries.limit) || 20;
+    const skip = (page - 1) * limit;
+      // **Search filter for name and description fields**:
+    if (queries.search) {
+      const searchTerm = `%${queries.search}%`; // Add wildcards for LIKE search
+      where.name = Like(searchTerm); // Search in the `name` field
+      where.description = Like(searchTerm); // Search in the `description` field
+    }
 
     if (queries.stars) {
       const [min, max] = queries.stars.split('-').map(Number);
@@ -112,73 +121,54 @@ export class RepositoryService {
       const ownerTypeArray = queries.owner_types.split(',').map((license) => license.trim()); // Trim to handle spaces
       where.owner_type = Any(ownerTypeArray);
     }
-    if (queries.is_trending !== undefined) where.is_trending = queries.is_trending;
     if (queries.stars_last_week && !isNaN(parseInt(queries.stars_last_week))) {
       where.stars_last_week = MoreThanOrEqual(parseInt(queries.stars_last_week));
     }
+    if (queries.is_trending !== undefined) where.is_trending = queries.is_trending;
 
+    const queryBuilder = this.repositoryRepo.createQueryBuilder('repo')
+    .leftJoinAndSelect('repo.languages', 'language') // Join the languages relation
+    .where(where);
+  
     if (queries.languages) {
       const languageNames = queries.languages.split(',').map((name) => name.trim());
-  
-      // Fetch repositories with the languages relation loaded
-      const partialResults = await this.repositoryRepo.find({
-        where,
-        relations: ['languages'], // Ensure languages are loaded
-      });
-  
+    
       if (queries.languagesOperation === 'OR') {
-        // OR logic: Find repositories where any of the languages match
-        const results = partialResults.filter((repo) =>
-          repo.languages.some((l) => languageNames.includes(l.name))
-        );
-        return results;
-      } else {
-        // AND logic: Find repositories where all the languages match
-        const results = partialResults.filter((repo) =>
-          languageNames.every((lang) => repo.languages.some((l) => l.name === lang))
-        );
-        return results;
+        // If 'OR', use IN to check if any language matches
+        queryBuilder.andWhere('language.name IN (:...languageNames)', { languageNames });
+      } else if (queries.languagesOperation === 'AND') {
+        // If 'AND', ensure that all languages are matched
+        languageNames.forEach((language, index) => {
+          queryBuilder.andWhere(
+            `EXISTS (
+              SELECT 1 FROM repository_languages rl
+              INNER JOIN languages l ON l.id = rl.language_id
+              WHERE rl.repository_id = repo.id
+              AND l.name = :language${index}
+            )`,
+            { [`language${index}`]: language }
+          );
+        });
       }
     }
-
-    // Pagination parameters
-    const page = parseInt(queries.page) || 1;
-    const limit = parseInt(queries.limit) || 20;
-    const skip = (page - 1) * limit;
-
-    const totalCount = await this.repositoryRepo.count({ where });
-    const totalPages = Math.ceil(totalCount / limit);
   
-    const repos =  await this.repositoryRepo.find({ 
-      where, 
-      relations: ['languages'], 
-      skip,
-      take: limit 
-    });
+    // Apply pagination
+    const [items, totalCount] = await queryBuilder
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+    
     return {
       totalCount,
-      totalPages,
+      totalPages: Math.ceil(totalCount / limit),
       currentPage: page,
       limit,
-      items: await Promise.all(repos.map(async repo => {
-        const is_trending = await this.isTrending(repo)
-        return {
-          ...repo, 
-            is_trending
-        }
-      }))
-    }
+      items,
+    };
+
   }
   async getRepositoryById(id: number) {
-    const repo =  await this.repositoryRepo.findOne({where: { id }, relations: ['languages']});
-    if(repo) {
-      const is_trending = await this.isTrending(repo)
-      return {
-        ...repo, 
-        is_trending
-      }
-    }
-    return null
+    return await this.repositoryRepo.findOne({where: { id }, relations: ['languages']});
   }
 
   async getRepositoryByGithubId(githubId: number) {
@@ -186,40 +176,40 @@ export class RepositoryService {
   }
 
 // Create a new repository and associate languages
-async createRepository(data: RepositoryBody) {
-  const { languages = [], ...repositoryData } = data;
+  async createRepository(data: RepositoryBody) {
+    const { languages = [], ...repositoryData } = data;
 
-  // If no languages are provided, throw an error
-  if (languages.length === 0) {
-    throw new Error('At least one language must be provided.');
+    // If no languages are provided, throw an error
+    if (languages.length === 0) {
+      throw new Error('At least one language must be provided.');
+    }
+
+    // Fetch the Language entities by name (if they exist)
+    const existingLanguages = await this.languageRepo.findBy({
+      name: In(languages),  // 'In' allows searching for multiple values at once
+    });
+
+    // Check if all the languages exist in the database
+    const existingLanguageNames = existingLanguages.map((lang) => lang.name);
+    const missingLanguages = languages.filter((language) => !existingLanguageNames.includes(language));
+
+    if (missingLanguages.length > 0) {
+      // If some languages are missing, return an error
+      throw new Error(`The following languages do not exist: ${missingLanguages.join(', ')}`);
+    }
+
+    // Create a new repository entity with the provided data
+    const newRepository = this.repositoryRepo.create({
+      ...repositoryData,  // Destructure the rest of the repository fields
+      stars_history: repositoryData.stars_count?.toString(),
+      forks_history: repositoryData.forks_count?.toString(),
+      watchers_history: repositoryData.watchers_count?.toString(),
+      languages: existingLanguages,  // Associate the languages with the repository
+    });
+
+    // Save and return the new repository
+    return await this.repositoryRepo.save(newRepository);
   }
-
-  // Fetch the Language entities by name (if they exist)
-  const existingLanguages = await this.languageRepo.findBy({
-    name: In(languages),  // 'In' allows searching for multiple values at once
-  });
-
-  // Check if all the languages exist in the database
-  const existingLanguageNames = existingLanguages.map((lang) => lang.name);
-  const missingLanguages = languages.filter((language) => !existingLanguageNames.includes(language));
-
-  if (missingLanguages.length > 0) {
-    // If some languages are missing, return an error
-    throw new Error(`The following languages do not exist: ${missingLanguages.join(', ')}`);
-  }
-
-  // Create a new repository entity with the provided data
-  const newRepository = this.repositoryRepo.create({
-    ...repositoryData,  // Destructure the rest of the repository fields
-    stars_history: repositoryData.stars_count?.toString(),
-    forks_history: repositoryData.forks_count?.toString(),
-    watchers_history: repositoryData.watchers_count?.toString(),
-    languages: existingLanguages,  // Associate the languages with the repository
-  });
-
-  // Save and return the new repository
-  return await this.repositoryRepo.save(newRepository);
-}
 
   async updateRepository(id: number, data: RepositoryBody) {
     const {languages, stars_count, forks_count,watchers_count, ...otherDatas} = data
@@ -264,6 +254,7 @@ async createRepository(data: RepositoryBody) {
         ...watchersistoryList,
       ].join(",")
     }
+
     const updatedRepository = this.repositoryRepo.merge(repository, mergedDatas);
     return await this.repositoryRepo.save(updatedRepository);
   }
@@ -273,14 +264,20 @@ async createRepository(data: RepositoryBody) {
     return result.affected !== 0;
   }
 
-  async isTrending(repo: Repository): Promise<boolean> {
-    const language = repo.languages[0]?.name;
-  
-    // Fetch the trending metric for the repository's language
-    const trendingMetric = await this.trendingMetricRepo.findOne({ where: { language } });
-    if (!trendingMetric) {
-      return false; // If no metric exists for the language, the repo cannot be trending
+  async updateIsTrendingReposFromLanguage(language: string) {
+    const allRepositories = await this.repositoryRepo
+      .createQueryBuilder("repository")
+      .innerJoinAndSelect("repository.languages", "language", "language.name = :language", { language })
+      .getMany();
+    const trendingMetric = await this.trendingMetricRepo.findOneBy({ language });
+    if(trendingMetric) {
+      allRepositories.forEach(repo => {
+        const isTrending = this.isTrending(trendingMetric, repo, language )
+      })
     }
+  }
+
+  private isTrending(trendingMetric: TrendingMetric, repo: Repository, language: string): boolean {
   
     // Maximum values for size normalization (you may fetch these from your trending metric or calculate dynamically)
     const maxStars = trendingMetric.max_stars ?? 1; // Avoid division by 0

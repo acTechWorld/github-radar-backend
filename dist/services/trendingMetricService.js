@@ -10,32 +10,32 @@ class TrendingMetricService {
     // Calculate the thresholds for stars, forks, and watchers with size-based weight
     async calculateTrendingMetrics(language) {
         // Fetch repositories with at least two values in history fields
-        let repositories = await this.repositoryRepo
+        const allRepositories = await this.repositoryRepo
             .createQueryBuilder("repository")
             .innerJoinAndSelect("repository.languages", "language", "language.name = :language", { language })
             .getMany();
-        repositories = repositories.filter(repo => {
+        const filteredRepositories = allRepositories.filter(repo => {
             return (repo.stars_last_week && repo.stars_history.split(",")?.length > 1) ||
                 (repo.forks_last_week && repo.forks_history.split(",")?.length > 1) ||
                 (repo.watchers_last_week && repo.watchers_history.split(",")?.length > 1);
         });
-        if (repositories.length === 0) {
+        if (filteredRepositories.length === 0) {
             throw new Error(`No repositories with sufficient history found for language: ${language}`);
         }
         // Extract last week's changes for each metric
-        const starsChanges = repositories
+        const starsChanges = filteredRepositories
             .map((repo) => repo.stars_last_week)
             .filter((stars_last_week) => stars_last_week !== null && stars_last_week !== undefined);
-        const forksChanges = repositories
+        const forksChanges = filteredRepositories
             .map((repo) => repo.forks_last_week)
             .filter((forks_last_week) => forks_last_week !== null && forks_last_week !== undefined);
-        const watchersChanges = repositories
+        const watchersChanges = filteredRepositories
             .map((repo) => repo.watchers_last_week)
             .filter((watchers_last_week) => watchers_last_week !== null && watchers_last_week !== undefined);
         // Calculate the maximum value of each metric for scaling
-        const maxStars = Math.max(...repositories.map((repo) => repo.stars_count));
-        const maxForks = Math.max(...repositories.map((repo) => repo.forks_count));
-        const maxWatchers = Math.max(...repositories.map((repo) => repo.watchers_count));
+        const maxStars = Math.max(...filteredRepositories.map((repo) => repo.stars_count));
+        const maxForks = Math.max(...filteredRepositories.map((repo) => repo.forks_count));
+        const maxWatchers = Math.max(...filteredRepositories.map((repo) => repo.watchers_count));
         const calculateWeightedTrendingScore = (repo) => {
             const sizeWeightStars = (repo.stars_count / maxStars) || 0;
             const sizeWeightForks = (repo.forks_count / maxForks) || 0;
@@ -51,7 +51,7 @@ class TrendingMetricService {
             };
         };
         // Calculate scores for each repository
-        const repositoriesWithScores = repositories.map(repo => ({
+        const repositoriesWithScores = filteredRepositories.map(repo => ({
             ...repo,
             weightedTrendingScore: calculateWeightedTrendingScore(repo),
         }));

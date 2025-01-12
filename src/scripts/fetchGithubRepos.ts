@@ -2,7 +2,11 @@ import { GithubService } from "../services/githubService"
 import { GithubApiRepo } from "../types/types"
 import { RepositoryService } from "../services/repositoryService"
 import { TrendingMetricService } from "../services/trendingMetricService"
+import cron from 'node-cron'
 const VUE_QUERY = 'language:Vue stars:>=10'
+const REACT_QUERY = 'topic:react stars:>=10 language:Typescript language:Javascript'
+const FRANCE_TZ = 'Europe/Paris';
+
 const githubService= new GithubService()
 const repositoryService = new RepositoryService()
 const trendingMetricService = new TrendingMetricService()
@@ -11,14 +15,37 @@ const waitXms = async (Xms: number) => {
   return new Promise(res => setTimeout(res, Xms))
 }
 
-const fetchGithubRepos =  async () => {
+//Cron params min hours * * *
+const initCronsFetchGithubRepos = () => {
+  //06:00
+  cron.schedule(
+    '0 6 * * *', 
+    () => {
+      console.log('Cron job React triggered...');
+      fetchGithubRepos(REACT_QUERY, 'React')
+    },
+    { timezone: FRANCE_TZ }
+  );
+  //10:00
+  cron.schedule(
+    '0 10 * * *', 
+    () => {
+      console.log('Cron job Vue triggered...');
+      fetchGithubRepos(VUE_QUERY, 'Vue')
+    }, 
+    { timezone: FRANCE_TZ }
+  );
+  
+}
+
+const fetchGithubRepos =  async (query: string, language: string) => {
   console.log("init fetchGithubRepos");
-  console.log("init fetching vue projects");
+  console.log(`init fetching ${language} projects`);
 
   try {
     // Fetch the first batch of repositories to get the total count and the first set of repositories
-    const { total_count: totalVueProjects } = await githubService.getAllRepositories({
-      qSearch: VUE_QUERY,
+    const { total_count: totalProjects } = await githubService.getAllRepositories({
+      qSearch: query,
       perPage: 1, // Fetch only the count
       page: 1,    // Fetch the first page (only for the count)
     });
@@ -27,19 +54,19 @@ const fetchGithubRepos =  async () => {
     let retryNumber = 0;
     let lastPushed: string | undefined = undefined;
 
-    console.log(`${totalVueProjects} Vue projects to fetch`);
+    console.log(`${totalProjects} ${language} projects to fetch`);
     // Check if we need to fetch more repositories
-    while (totalFetched < totalVueProjects) {
+    while (totalFetched < totalProjects) {
       try {
         // Fetch the next batch of repositories using the creation_date filter (last fetched repository date)
         const repos = await githubService.getAllRepositories({
-          qSearch: lastPushed ? `language:Vue stars:>=10 pushed:<=${lastPushed}` : VUE_QUERY,
+          qSearch: lastPushed ? `language:${language} stars:>=10 pushed:<=${lastPushed}` : query,
           perPage: 100,
           sort: 'updated', // Filter based on the last creation date
         });
 
         // Process each fetched repository (e.g., save to DB)
-        repos.items.forEach((repo) => saveGithubRepoInDb(repo, 'Vue'));
+        repos.items.forEach((repo) => saveGithubRepoInDb(repo, language));
         totalFetched += repos.items.length; // Increment the count based on fetched items
 
         console.log(`Fetched: ${totalFetched} repositories`);
@@ -49,9 +76,10 @@ const fetchGithubRepos =  async () => {
           lastPushed = repos.items.sort((a,b) => (new Date(b.last_pushed) as any) - (new Date(a.last_pushed) as any))?.[repos.items.length - 1].last_pushed;
         }
         retryNumber = 0
-        
+        // await waitXms(10 * 1000)
+
       } catch (error: any) {
-        if(error.status === "403") {
+        if(error.status === 403) {
           if(retryNumber < 10) {
             retryNumber += 1
             console.error(`Error fetching repos, (403) wait 5mins and retry (retry number ${retryNumber}):`, error.message);
@@ -67,8 +95,11 @@ const fetchGithubRepos =  async () => {
       }
     }
 
-    const calculatedTrendingMetrics = await trendingMetricService.calculateTrendingMetrics('Vue')
-    await trendingMetricService.createOrUpdateTrendingMetric('Vue', calculatedTrendingMetrics)
+    //Calculate trending metric and update is_trending field
+    const calculatedTrendingMetrics = await trendingMetricService.calculateTrendingMetrics(language)
+    await trendingMetricService.createOrUpdateTrendingMetric(language, calculatedTrendingMetrics)
+
+    await repositoryService.updateIsTrendingReposFromLanguage(language)
 
     console.log("Finished fetching all repositories.");
   } catch (error: any) {
@@ -128,4 +159,4 @@ const saveGithubRepoInDb = async (repo: GithubApiRepo, basedLanguage: string) =>
     
 }
 
-export {fetchGithubRepos}
+export {fetchGithubRepos, initCronsFetchGithubRepos}

@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
 });
 router.get('/fetchGithubRepos', async (req, res) => {
     try {
-        (0, fetchGithubRepos_1.fetchGithubRepos)();
+        (0, fetchGithubRepos_1.fetchGithubRepos)(req.query.query, req.query.language);
         res.json('Script launched');
     }
     catch (error) {

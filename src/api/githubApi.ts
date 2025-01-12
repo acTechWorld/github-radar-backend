@@ -22,10 +22,7 @@ const fetchRepositoriesBySearch = async (qSearch: string, page = 1, perPage = 30
         Authorization: `Bearer ${GITHUB_TOKEN}`, // Include the token in the Authorization header
       },
     });
-    response.data.items.forEach((item:any) => {
-      if (item.language !== "Vue") console.log(item.language)
-
-    });
+    // console.log(response)
     return {
       total_count: response.data.total_count, 
       items: response.data.items

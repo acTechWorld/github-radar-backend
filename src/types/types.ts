@@ -1,6 +1,7 @@
 type Operation =  'OR' | 'AND'
 
 export interface RepositoryQuery {
+    search?: string;
     languages?: string;
     languagesOperation?: Operation;
     stars?: string;

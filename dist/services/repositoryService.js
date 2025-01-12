@@ -13,6 +13,15 @@ class RepositoryService {
     trendingMetricRepo = db_1.AppDataSource.getRepository(TrendingMetric_1.TrendingMetric);
     async getAllRepositories(queries) {
         const where = {};
+        const page = parseInt(queries.page) || 1;
+        const limit = parseInt(queries.limit) || 20;
+        const skip = (page - 1) * limit;
+        // **Search filter for name and description fields**:
+        if (queries.search) {
+            const searchTerm = `%${queries.search}%`; // Add wildcards for LIKE search
+            where.name = (0, typeorm_1.Like)(searchTerm); // Search in the `name` field
+            where.description = (0, typeorm_1.Like)(searchTerm); // Search in the `description` field
+        }
         if (queries.stars) {
             const [min, max] = queries.stars.split('-').map(Number);
             if (!isNaN(min) && !isNaN(max)) {
@@ -114,65 +123,47 @@ class RepositoryService {
             const ownerTypeArray = queries.owner_types.split(',').map((license) => license.trim()); // Trim to handle spaces
             where.owner_type = (0, typeorm_1.Any)(ownerTypeArray);
         }
-        if (queries.is_trending !== undefined)
-            where.is_trending = queries.is_trending;
         if (queries.stars_last_week && !isNaN(parseInt(queries.stars_last_week))) {
             where.stars_last_week = (0, typeorm_1.MoreThanOrEqual)(parseInt(queries.stars_last_week));
         }
+        if (queries.is_trending !== undefined)
+            where.is_trending = queries.is_trending;
+        const queryBuilder = this.repositoryRepo.createQueryBuilder('repo')
+            .leftJoinAndSelect('repo.languages', 'language') // Join the languages relation
+            .where(where);
         if (queries.languages) {
             const languageNames = queries.languages.split(',').map((name) => name.trim());
-            // Fetch repositories with the languages relation loaded
-            const partialResults = await this.repositoryRepo.find({
-                where,
-                relations: ['languages'], // Ensure languages are loaded
-            });
             if (queries.languagesOperation === 'OR') {
-                // OR logic: Find repositories where any of the languages match
-                const results = partialResults.filter((repo) => repo.languages.some((l) => languageNames.includes(l.name)));
-                return results;
+                // If 'OR', use IN to check if any language matches
+                queryBuilder.andWhere('language.name IN (:...languageNames)', { languageNames });
             }
-            else {
-                // AND logic: Find repositories where all the languages match
-                const results = partialResults.filter((repo) => languageNames.every((lang) => repo.languages.some((l) => l.name === lang)));
-                return results;
+            else if (queries.languagesOperation === 'AND') {
+                // If 'AND', ensure that all languages are matched
+                languageNames.forEach((language, index) => {
+                    queryBuilder.andWhere(`EXISTS (
+              SELECT 1 FROM repository_languages rl
+              INNER JOIN languages l ON l.id = rl.language_id
+              WHERE rl.repository_id = repo.id
+              AND l.name = :language${index}
+            )`, { [`language${index}`]: language });
+                });
             }
         }
-        // Pagination parameters
-        const page = parseInt(queries.page) || 1;
-        const limit = parseInt(queries.limit) || 20;
-        const skip = (page - 1) * limit;
-        const totalCount = await this.repositoryRepo.count({ where });
-        const totalPages = Math.ceil(totalCount / limit);
-        const repos = await this.repositoryRepo.find({
-            where,
-            relations: ['languages'],
-            skip,
-            take: limit
-        });
+        // Apply pagination
+        const [items, totalCount] = await queryBuilder
+            .skip(skip)
+            .take(limit)
+            .getManyAndCount();
         return {
             totalCount,
-            totalPages,
+            totalPages: Math.ceil(totalCount / limit),
             currentPage: page,
             limit,
-            items: await Promise.all(repos.map(async (repo) => {
-                const is_trending = await this.isTrending(repo);
-                return {
-                    ...repo,
-                    is_trending
-                };
-            }))
+            items,
         };
     }
     async getRepositoryById(id) {
-        const repo = await this.repositoryRepo.findOne({ where: { id }, relations: ['languages'] });
-        if (repo) {
-            const is_trending = await this.isTrending(repo);
-            return {
-                ...repo,
-                is_trending
-            };
-        }
-        return null;
+        return await this.repositoryRepo.findOne({ where: { id }, relations: ['languages'] });
     }
     async getRepositoryByGithubId(githubId) {
         return await this.repositoryRepo.find({ where: { github_id: githubId }, relations: ['languages'] });
@@ -253,13 +244,19 @@ class RepositoryService {
         const result = await this.repositoryRepo.delete(id);
         return result.affected !== 0;
     }
-    async isTrending(repo) {
-        const language = repo.languages[0]?.name;
-        // Fetch the trending metric for the repository's language
-        const trendingMetric = await this.trendingMetricRepo.findOne({ where: { language } });
-        if (!trendingMetric) {
-            return false; // If no metric exists for the language, the repo cannot be trending
+    async updateIsTrendingReposFromLanguage(language) {
+        const allRepositories = await this.repositoryRepo
+            .createQueryBuilder("repository")
+            .innerJoinAndSelect("repository.languages", "language", "language.name = :language", { language })
+            .getMany();
+        const trendingMetric = await this.trendingMetricRepo.findOneBy({ language });
+        if (trendingMetric) {
+            allRepositories.forEach(repo => {
+                const isTrending = this.isTrending(trendingMetric, repo, language);
+            });
         }
+    }
+    isTrending(trendingMetric, repo, language) {
         // Maximum values for size normalization (you may fetch these from your trending metric or calculate dynamically)
         const maxStars = trendingMetric.max_stars ?? 1; // Avoid division by 0
         const maxForks = trendingMetric.max_forks ?? 1;
