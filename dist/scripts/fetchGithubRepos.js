@@ -19,14 +19,15 @@ const waitXms = async (Xms) => {
 };
 //Cron params min hours * * *
 const initCronsFetchGithubRepos = () => {
-    //8:13
-    node_cron_1.default.schedule('0 10 * * *', () => {
-        console.log('Cron job Vue triggered...');
-        fetchGithubRepos(VUE_QUERY, 'Vue');
-    }, { timezone: FRANCE_TZ });
+    //06:00
     node_cron_1.default.schedule('0 6 * * *', () => {
         console.log('Cron job React triggered...');
         fetchGithubRepos(REACT_QUERY, 'React');
+    }, { timezone: FRANCE_TZ });
+    //10:00
+    node_cron_1.default.schedule('0 10 * * *', () => {
+        console.log('Cron job Vue triggered...');
+        fetchGithubRepos(VUE_QUERY, 'Vue');
     }, { timezone: FRANCE_TZ });
 };
 exports.initCronsFetchGithubRepos = initCronsFetchGithubRepos;
@@ -62,7 +63,7 @@ const fetchGithubRepos = async (query, language) => {
                     lastPushed = repos.items.sort((a, b) => new Date(b.last_pushed) - new Date(a.last_pushed))?.[repos.items.length - 1].last_pushed;
                 }
                 retryNumber = 0;
-                // await waitXms(10 * 1000)
+                await waitXms(10 * 1000);
             }
             catch (error) {
                 if (error.status === 403) {

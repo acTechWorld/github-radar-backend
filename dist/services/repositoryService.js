@@ -253,6 +253,7 @@ class RepositoryService {
         if (trendingMetric) {
             allRepositories.forEach(repo => {
                 const isTrending = this.isTrending(trendingMetric, repo, language);
+                this.updateRepository(repo.id, { is_trending: isTrending });
             });
         }
     }
