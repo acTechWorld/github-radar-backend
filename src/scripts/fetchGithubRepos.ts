@@ -76,7 +76,7 @@ const fetchGithubRepos =  async (query: string, language: string) => {
           lastPushed = repos.items.sort((a,b) => (new Date(b.last_pushed) as any) - (new Date(a.last_pushed) as any))?.[repos.items.length - 1].last_pushed;
         }
         retryNumber = 0
-        // await waitXms(10 * 1000)
+        await waitXms(10 * 1000)
 
       } catch (error: any) {
         if(error.status === 403) {

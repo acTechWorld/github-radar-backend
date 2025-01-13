@@ -45,6 +45,30 @@ export interface RepositoryBody {
     last_pushed?: Date;
   }
 
+  export interface RepositoryUpdateBody {
+    github_id?: number;
+    name?: string;
+    description?: string;
+    html_url?: string;
+    owner_name?: string;
+    owner_avatar_url?: string;
+    stars_count?: number;
+    forks_count?: number;
+    watchers_count?: number;
+    open_issues_count?: number;
+    languages?: string[]; // List of language names (strings)
+    license?: string;
+    topics?: string[];
+    owner_type?: string; // 'Organization' or 'Individual'
+    is_trending?: boolean;
+    stars_last_week?: number;
+    forks_last_week?: number;
+    watchers_last_week?: number;
+    creation_date?: Date;
+    last_updated?: Date;
+    last_pushed?: Date;
+  }
+
   export interface GithubRepoQuery {
     qSearch: string;
     page?: number;

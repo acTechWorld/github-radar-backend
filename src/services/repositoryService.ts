@@ -2,7 +2,7 @@
 import { Repository } from '../models/Repository';
 import { AppDataSource } from '../db';
 import { Any, ArrayContains, Between, In, LessThanOrEqual, MoreThanOrEqual, ArrayOverlap, And, FindOperator, Like } from 'typeorm';
-import { RepositoryBody, RepositoryQuery } from '../types/types';
+import { RepositoryBody, RepositoryQuery, RepositoryUpdateBody } from '../types/types';
 import { Language } from '../models/Language';
 import { TrendingMetric } from '../models/TrendingMetric';
 
@@ -211,7 +211,7 @@ export class RepositoryService {
     return await this.repositoryRepo.save(newRepository);
   }
 
-  async updateRepository(id: number, data: RepositoryBody) {
+  async updateRepository(id: number, data: RepositoryUpdateBody) {
     const {languages, stars_count, forks_count,watchers_count, ...otherDatas} = data
     const repository = await this.repositoryRepo.findOne({where: { id }, relations: ['languages']});
     if (!repository) return null;
@@ -273,6 +273,7 @@ export class RepositoryService {
     if(trendingMetric) {
       allRepositories.forEach(repo => {
         const isTrending = this.isTrending(trendingMetric, repo, language )
+        this.updateRepository(repo.id, {is_trending: isTrending})
       })
     }
   }

@@ -25,19 +25,6 @@ export class TrendingMetricService {
       throw new Error(`No repositories with sufficient history found for language: ${language}`);
     }
 
-    // Extract last week's changes for each metric
-    const starsChanges = filteredRepositories
-      .map((repo) => repo.stars_last_week)
-      .filter((stars_last_week) => stars_last_week !== null && stars_last_week !== undefined);
-
-    const forksChanges = filteredRepositories
-      .map((repo) => repo.forks_last_week)
-      .filter((forks_last_week) => forks_last_week !== null && forks_last_week !== undefined);
-
-    const watchersChanges = filteredRepositories
-      .map((repo) => repo.watchers_last_week)
-      .filter((watchers_last_week) => watchers_last_week !== null && watchers_last_week !== undefined);
-
     // Calculate the maximum value of each metric for scaling
     const maxStars = Math.max(...filteredRepositories.map((repo) => repo.stars_count));
     const maxForks = Math.max(...filteredRepositories.map((repo) => repo.forks_count));
@@ -73,7 +60,7 @@ export class TrendingMetricService {
         return 0; // Return a default threshold if no data is available
       }
       const sortedRepositories = [...repositories].sort((a, b) => b.weightedTrendingScore[key] - a.weightedTrendingScore[key]);
-      const top10Percent = sortedRepositories.slice(0, Math.ceil(sortedRepositories.length * 0.1));
+      const top10Percent = sortedRepositories.slice(0, Math.ceil(sortedRepositories.length * 0.05));
       return top10Percent.length > 0 ? top10Percent[top10Percent.length - 1].weightedTrendingScore[key] : 0;
     };
     
@@ -81,7 +68,6 @@ export class TrendingMetricService {
     const forksThreshold = calculateThresholds(repositoriesWithScores, 'forks');
     const watchersThreshold = calculateThresholds(repositoriesWithScores, 'watchers');
     const combinedThreshold = calculateThresholds(repositoriesWithScores, 'combined');
-
 
     // Return the trendingMetrics
     const trendingMetrics: CalculatedTrendingMetrics = {
