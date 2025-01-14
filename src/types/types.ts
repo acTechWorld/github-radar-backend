@@ -11,6 +11,10 @@ export interface RepositoryQuery {
     created_before?: string;
     updated_after?: string;
     updated_before?: string;
+    technical_created_at_after?: string; // ISO date strings
+    technical_created_at_before?: string;
+    technical_updated_at_after?: string; // ISO date strings
+    technical_updated_at_before?: string;
     topics?: string;
     topicsOperation?: Operation;
     licenses?: string;

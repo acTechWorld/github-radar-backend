@@ -112,6 +112,37 @@ export class RepositoryService {
         where.topics = ArrayContains(topicsArray);
       }
     }
+
+    if (queries.technical_created_at_after || queries.technical_created_at_before) {
+      const [min, max] = [
+        queries.technical_created_at_after ? new Date(queries.technical_created_at_after) : undefined,
+        queries.technical_created_at_before ? new Date(queries.technical_created_at_before) : undefined,
+      ];
+    
+      if (min && max) {
+        where.created_at = Between(min, max);
+      } else if (min) {
+        where.created_at = MoreThanOrEqual(min);
+      } else if (max) {
+        where.created_at = LessThanOrEqual(max);
+      }
+    }
+    
+    if (queries.technical_updated_at_after || queries.technical_updated_at_before) {
+      const [min, max] = [
+        queries.technical_updated_at_after ? new Date(queries.technical_updated_at_after) : undefined,
+        queries.technical_updated_at_before ? new Date(queries.technical_updated_at_before) : undefined,
+      ];
+    
+      if (min && max) {
+        where.updated_at = Between(min, max);
+      } else if (min) {
+        where.updated_at = MoreThanOrEqual(min);
+      } else if (max) {
+        where.updated_at = LessThanOrEqual(max);
+      }
+    }
+    
     
     if (queries.licenses) {
       const licensesArray = queries.licenses.split(',').map((license) => license.trim()); // Trim to handle spaces
@@ -254,6 +285,8 @@ export class RepositoryService {
         ...watchersistoryList,
       ].join(",")
     }
+
+    mergedDatas.updated_at = new Date();
 
     const updatedRepository = this.repositoryRepo.merge(repository, mergedDatas);
     return await this.repositoryRepo.save(updatedRepository);
