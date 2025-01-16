@@ -19,7 +19,7 @@ const waitXms = async (Xms: number) => {
 const initCronsFetchGithubRepos = () => {
   //06:00
   cron.schedule(
-    '0 6 * * *', 
+    '47 6 * * *', 
     () => {
       console.log('Cron job React triggered...');
       fetchGithubRepos(REACT_QUERY, 'React')
@@ -28,7 +28,7 @@ const initCronsFetchGithubRepos = () => {
   );
   //10:00
   cron.schedule(
-    '0 10 * * *', 
+    '50 6 * * *', 
     () => {
       console.log('Cron job Vue triggered...');
       fetchGithubRepos(VUE_QUERY, 'Vue')

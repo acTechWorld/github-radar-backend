@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { GithubService } from '../services/githubService';
-import { fetchGithubRepos } from '../scripts/fetchGithubRepos'
+import { fetchGithubRepos, initCronsFetchGithubRepos } from '../scripts/fetchGithubRepos'
 const router = Router();
 const githubService = new GithubService();
 
@@ -19,6 +19,15 @@ router.get('/fetchGithubRepos', async (req, res) => {
       res.json('Script launched');
     } catch (error: any) {
       res.status(500).json({ message: 'Error starting script', error:  error.message ?? error });
+    }
+  });
+
+  router.get('/initCronJobs', async (req, res) => {
+    try {
+      initCronsFetchGithubRepos();
+      res.json('Crons launched');
+    } catch (error: any) {
+      res.status(500).json({ message: 'Error starting crons', error:  error.message ?? error });
     }
   });
 export default router;

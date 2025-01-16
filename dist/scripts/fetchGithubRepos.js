@@ -20,12 +20,12 @@ const waitXms = async (Xms) => {
 //Cron params min hours * * *
 const initCronsFetchGithubRepos = () => {
     //06:00
-    node_cron_1.default.schedule('0 6 * * *', () => {
+    node_cron_1.default.schedule('47 6 * * *', () => {
         console.log('Cron job React triggered...');
         fetchGithubRepos(REACT_QUERY, 'React');
     }, { timezone: FRANCE_TZ });
     //10:00
-    node_cron_1.default.schedule('0 10 * * *', () => {
+    node_cron_1.default.schedule('50 6 * * *', () => {
         console.log('Cron job Vue triggered...');
         fetchGithubRepos(VUE_QUERY, 'Vue');
     }, { timezone: FRANCE_TZ });
