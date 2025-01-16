@@ -1,5 +1,5 @@
 import { AppDataSource } from '../db';
-import logger from '@/utils/logger';
+import logger from '../utils/logger';
 const resetDatabase = async () => {
   try {
     logger.log("INFO", 'Initializing database connection...');
