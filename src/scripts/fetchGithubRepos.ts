@@ -21,7 +21,7 @@ const initCronsFetchGithubRepos = () => {
   logger.log("INFO", 'Init Cron Jobs');
   //06:00
   cron.schedule(
-    '47 6 * * *', 
+    '0 6 * * *', 
     () => {
       logger.log("INFO", 'Cron job React triggered...');
       fetchGithubRepos(REACT_QUERY, 'React')
@@ -31,7 +31,7 @@ const initCronsFetchGithubRepos = () => {
   );
   //10:00
   cron.schedule(
-    '50 6 * * *', 
+    '0 10 * * *', 
     () => {
       logger.log("INFO", 'Cron job Vue triggered...');
       fetchGithubRepos(VUE_QUERY, 'Vue')

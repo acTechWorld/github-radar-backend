@@ -22,13 +22,13 @@ const waitXms = async (Xms) => {
 const initCronsFetchGithubRepos = () => {
     logger_1.default.log("INFO", 'Init Cron Jobs');
     //06:00
-    node_cron_1.default.schedule('47 6 * * *', () => {
+    node_cron_1.default.schedule('0 6 * * *', () => {
         logger_1.default.log("INFO", 'Cron job React triggered...');
         fetchGithubRepos(REACT_QUERY, 'React');
         logger_1.default.log("INFO", `Finish Cron job React`);
     }, { timezone: FRANCE_TZ });
     //10:00
-    node_cron_1.default.schedule('50 6 * * *', () => {
+    node_cron_1.default.schedule('0 10 * * *', () => {
         logger_1.default.log("INFO", 'Cron job Vue triggered...');
         fetchGithubRepos(VUE_QUERY, 'Vue');
         logger_1.default.log("INFO", `Finish Cron job Vue`);
