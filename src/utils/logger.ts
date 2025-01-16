@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 
-const logsDir = path.join(__dirname, '../logs');
+const logsDir = process.env.LOGS_DIR || path.join(__dirname, '../logs');
 
 // Ensure logs directory exists
 const ensureLogsDir = () => {
