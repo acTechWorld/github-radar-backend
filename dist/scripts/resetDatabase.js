@@ -1,24 +1,28 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = require("../db");
+const logger_1 = __importDefault(require("@/utils/logger"));
 const resetDatabase = async () => {
     try {
-        console.log('Initializing database connection...');
+        logger_1.default.log("INFO", 'Initializing database connection...');
         await db_1.AppDataSource.initialize();
-        console.log('Database connected.');
-        console.log('Dropping all tables...');
+        logger_1.default.log("INFO", 'Database connected.');
+        logger_1.default.log("INFO", 'Dropping all tables...');
         await db_1.AppDataSource.dropDatabase(); // Drops all tables in the database
-        console.log('Tables dropped.');
-        console.log('Recreating tables...');
+        logger_1.default.log("INFO", 'Tables dropped.');
+        logger_1.default.log("INFO", 'Recreating tables...');
         await db_1.AppDataSource.synchronize(); // Synchronizes the database, recreating the tables based on entities
-        console.log('Tables recreated successfully.');
-        console.log('Closing database connection...');
+        logger_1.default.log("INFO", 'Tables recreated successfully.');
+        logger_1.default.log("INFO", 'Closing database connection...');
         await db_1.AppDataSource.destroy(); // Closes the database connection
-        console.log('Database connection closed.');
-        console.log('Project initialized successfully!');
+        logger_1.default.log("INFO", 'Database connection closed.');
+        logger_1.default.log("INFO", 'Project initialized successfully!');
     }
     catch (error) {
-        console.error('Error during database reset:', error);
+        logger_1.default.log("ERROR", `Error during database reset: ${error.message}`);
         process.exit(1);
     }
 };

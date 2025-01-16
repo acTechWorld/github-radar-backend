@@ -1,26 +1,26 @@
 import { AppDataSource } from '../db';
-
+import logger from '@/utils/logger';
 const resetDatabase = async () => {
   try {
-    console.log('Initializing database connection...');
+    logger.log("INFO", 'Initializing database connection...');
     await AppDataSource.initialize();
-    console.log('Database connected.');
+    logger.log("INFO", 'Database connected.');
 
-    console.log('Dropping all tables...');
+    logger.log("INFO", 'Dropping all tables...');
     await AppDataSource.dropDatabase(); // Drops all tables in the database
-    console.log('Tables dropped.');
+    logger.log("INFO", 'Tables dropped.');
 
-    console.log('Recreating tables...');
+    logger.log("INFO", 'Recreating tables...');
     await AppDataSource.synchronize(); // Synchronizes the database, recreating the tables based on entities
-    console.log('Tables recreated successfully.');
+    logger.log("INFO", 'Tables recreated successfully.');
 
-    console.log('Closing database connection...');
+    logger.log("INFO", 'Closing database connection...');
     await AppDataSource.destroy(); // Closes the database connection
-    console.log('Database connection closed.');
+    logger.log("INFO", 'Database connection closed.');
 
-    console.log('Project initialized successfully!');
-  } catch (error) {
-    console.error('Error during database reset:', error);
+    logger.log("INFO", 'Project initialized successfully!');
+  } catch (error: any) {
+    logger.log("ERROR", `Error during database reset: ${error.message}`);
     process.exit(1);
   }
 };

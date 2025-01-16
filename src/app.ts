@@ -5,7 +5,7 @@ import { AppDataSource } from './db';
 import repositoryRoutes from './routes/repositoryRoutes';
 import languageRoutes from './routes/languageRoutes';
 import githubRoutes from './routes/githubRoutes';
-
+import logger from './utils/logger';
 const app: Application = express();
 app.use(cors());
 app.use(bodyParser.json());
@@ -13,10 +13,10 @@ app.use(bodyParser.json());
 // Initialize TypeORM DataSource
 AppDataSource.initialize()
   .then(() => {
-    console.log('Database connected successfully.');
+    logger.log("INFO", 'Database connected successfully.');
   })
-  .catch((error) => {
-    console.error('Error connecting to the database:', error);
+  .catch((error: any) => {
+    logger.log("ERROR", `Error connecting to the database: ${error.message}`);
   });
 
 // Add routes

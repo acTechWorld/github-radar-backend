@@ -44,5 +44,4 @@ const PORT = process.env.PORT || 3000;
 app_1.default.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
-console.log('init cron jobs');
 (0, fetchGithubRepos_1.initCronsFetchGithubRepos)();

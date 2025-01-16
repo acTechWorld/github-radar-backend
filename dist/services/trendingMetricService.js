@@ -84,7 +84,6 @@ class TrendingMetricService {
             existingMetric.max_watchers = calculatedTrendingMetrics.max_watchers;
             // Save the updated metric
             await this.trendingMetricRepo.save(existingMetric);
-            console.log(`Updated trending metric for language: ${language}`);
         }
         else {
             // If it doesn't exist, create a new entry
@@ -99,7 +98,6 @@ class TrendingMetricService {
             newTrendingMetric.max_watchers = calculatedTrendingMetrics.max_watchers;
             // Save the new metric
             await this.trendingMetricRepo.save(newTrendingMetric);
-            console.log(`Created new trending metric for language: ${language}`);
         }
     }
 }

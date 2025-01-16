@@ -10,16 +10,17 @@ const db_1 = require("./db");
 const repositoryRoutes_1 = __importDefault(require("./routes/repositoryRoutes"));
 const languageRoutes_1 = __importDefault(require("./routes/languageRoutes"));
 const githubRoutes_1 = __importDefault(require("./routes/githubRoutes"));
+const logger_1 = __importDefault(require("./utils/logger"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
 app.use(body_parser_1.default.json());
 // Initialize TypeORM DataSource
 db_1.AppDataSource.initialize()
     .then(() => {
-    console.log('Database connected successfully.');
+    logger_1.default.log("INFO", 'Database connected successfully.');
 })
     .catch((error) => {
-    console.error('Error connecting to the database:', error);
+    logger_1.default.log("ERROR", `Error connecting to the database: ${error.message}`);
 });
 // Add routes
 app.use('/api/repositories', repositoryRoutes_1.default);

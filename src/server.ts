@@ -14,5 +14,4 @@ app.listen(PORT, () => {
 });
 
 
-console.log('init cron jobs')
 initCronsFetchGithubRepos()

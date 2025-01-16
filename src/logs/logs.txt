@@ -1,0 +1,2 @@
+2025-01-16T06:18:30.135Z - INFO:Init Cron Jobs
+2025-01-16T06:18:30.214Z - INFO:Database connected successfully.

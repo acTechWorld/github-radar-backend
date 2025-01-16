@@ -7,6 +7,7 @@ exports.initCronsFetchGithubRepos = exports.fetchGithubRepos = void 0;
 const githubService_1 = require("../services/githubService");
 const repositoryService_1 = require("../services/repositoryService");
 const trendingMetricService_1 = require("../services/trendingMetricService");
+const logger_1 = __importDefault(require("../utils/logger"));
 const node_cron_1 = __importDefault(require("node-cron"));
 const VUE_QUERY = 'language:Vue stars:>=10';
 const REACT_QUERY = 'topic:react stars:>=10 language:Typescript language:Javascript';
@@ -19,21 +20,23 @@ const waitXms = async (Xms) => {
 };
 //Cron params min hours * * *
 const initCronsFetchGithubRepos = () => {
+    logger_1.default.log("INFO", 'Init Cron Jobs');
     //06:00
     node_cron_1.default.schedule('47 6 * * *', () => {
-        console.log('Cron job React triggered...');
+        logger_1.default.log("INFO", 'Cron job React triggered...');
         fetchGithubRepos(REACT_QUERY, 'React');
+        logger_1.default.log("INFO", `Finish Cron job React`);
     }, { timezone: FRANCE_TZ });
     //10:00
     node_cron_1.default.schedule('50 6 * * *', () => {
-        console.log('Cron job Vue triggered...');
+        logger_1.default.log("INFO", 'Cron job Vue triggered...');
         fetchGithubRepos(VUE_QUERY, 'Vue');
+        logger_1.default.log("INFO", `Finish Cron job Vue`);
     }, { timezone: FRANCE_TZ });
 };
 exports.initCronsFetchGithubRepos = initCronsFetchGithubRepos;
 const fetchGithubRepos = async (query, language) => {
-    console.log("init fetchGithubRepos");
-    console.log(`init fetching ${language} projects`);
+    logger_1.default.log("INFO", `init fetching ${language} projects`);
     try {
         // Fetch the first batch of repositories to get the total count and the first set of repositories
         const { total_count: totalProjects } = await githubService.getAllRepositories({
@@ -44,7 +47,7 @@ const fetchGithubRepos = async (query, language) => {
         let totalFetched = 0;
         let retryNumber = 0;
         let lastPushed = undefined;
-        console.log(`${totalProjects} ${language} projects to fetch`);
+        logger_1.default.log("INFO", `${totalProjects} ${language} projects to fetch`);
         // Check if we need to fetch more repositories
         while (totalFetched < totalProjects) {
             try {
@@ -57,7 +60,7 @@ const fetchGithubRepos = async (query, language) => {
                 // Process each fetched repository (e.g., save to DB)
                 repos.items.forEach((repo) => saveGithubRepoInDb(repo, language));
                 totalFetched += repos.items.length; // Increment the count based on fetched items
-                console.log(`Fetched: ${totalFetched} repositories`);
+                logger_1.default.log("INFO", `Fetched: ${totalFetched} repositories`);
                 // Update the `lastCreationDate` with the most recent repository's `created_at`
                 if (repos.items.length > 0) {
                     lastPushed = repos.items.sort((a, b) => new Date(b.last_pushed) - new Date(a.last_pushed))?.[repos.items.length - 1].last_pushed;
@@ -69,28 +72,29 @@ const fetchGithubRepos = async (query, language) => {
                 if (error.status === 403) {
                     if (retryNumber < 10) {
                         retryNumber += 1;
-                        console.error(`Error fetching repos, (403) wait 5mins and retry (retry number ${retryNumber}):`, error.message);
+                        logger_1.default.log("ERROR", `Error fetching repos, (403) wait 5mins and retry (retry number ${retryNumber}): ${error.message}`);
                         await waitXms(5 * 60 * 1000);
                     }
                     else {
-                        console.error("Error fetching repos, (403) max number of retry attempted => finsh job:", error.message);
+                        logger_1.default.log("ERROR", `Error fetching repos, (403) max number of retry attempted => finsh job: ${error.message}`);
                         break;
                     }
                 }
                 else {
-                    console.error("Error fetching repos (not 403):", error.message);
+                    logger_1.default.log("ERROR", `Error fetching repos (not 403): ${error.message}`);
                     break;
                 }
             }
         }
+        logger_1.default.log("INFO", "Finished fetching all repositories.");
         //Calculate trending metric and update is_trending field
+        logger_1.default.log("INFO", `Calculate trending metric for ${language}`);
         const calculatedTrendingMetrics = await trendingMetricService.calculateTrendingMetrics(language);
         await trendingMetricService.createOrUpdateTrendingMetric(language, calculatedTrendingMetrics);
         await repositoryService.updateIsTrendingReposFromLanguage(language);
-        console.log("Finished fetching all repositories.");
     }
     catch (error) {
-        console.error("Error initializing repository fetch:", error.message);
+        logger_1.default.log("ERROR", `Error initializing repository fetch: ${error.message}`);
     }
 };
 exports.fetchGithubRepos = fetchGithubRepos;

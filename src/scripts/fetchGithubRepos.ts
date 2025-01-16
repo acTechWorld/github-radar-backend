@@ -2,6 +2,7 @@ import { GithubService } from "../services/githubService"
 import { GithubApiRepo } from "../types/types"
 import { RepositoryService } from "../services/repositoryService"
 import { TrendingMetricService } from "../services/trendingMetricService"
+import logger from "../utils/logger"
 import cron from 'node-cron'
 const VUE_QUERY = 'language:Vue stars:>=10'
 const REACT_QUERY = 'topic:react stars:>=10 language:Typescript language:Javascript'
@@ -17,12 +18,14 @@ const waitXms = async (Xms: number) => {
 
 //Cron params min hours * * *
 const initCronsFetchGithubRepos = () => {
+  logger.log("INFO", 'Init Cron Jobs');
   //06:00
   cron.schedule(
     '47 6 * * *', 
     () => {
-      console.log('Cron job React triggered...');
+      logger.log("INFO", 'Cron job React triggered...');
       fetchGithubRepos(REACT_QUERY, 'React')
+      logger.log("INFO", `Finish Cron job React`);
     },
     { timezone: FRANCE_TZ }
   );
@@ -30,8 +33,9 @@ const initCronsFetchGithubRepos = () => {
   cron.schedule(
     '50 6 * * *', 
     () => {
-      console.log('Cron job Vue triggered...');
+      logger.log("INFO", 'Cron job Vue triggered...');
       fetchGithubRepos(VUE_QUERY, 'Vue')
+      logger.log("INFO", `Finish Cron job Vue`);
     }, 
     { timezone: FRANCE_TZ }
   );
@@ -39,8 +43,7 @@ const initCronsFetchGithubRepos = () => {
 }
 
 const fetchGithubRepos =  async (query: string, language: string) => {
-  console.log("init fetchGithubRepos");
-  console.log(`init fetching ${language} projects`);
+  logger.log("INFO", `init fetching ${language} projects`);
 
   try {
     // Fetch the first batch of repositories to get the total count and the first set of repositories
@@ -54,7 +57,7 @@ const fetchGithubRepos =  async (query: string, language: string) => {
     let retryNumber = 0;
     let lastPushed: string | undefined = undefined;
 
-    console.log(`${totalProjects} ${language} projects to fetch`);
+    logger.log("INFO", `${totalProjects} ${language} projects to fetch`);
     // Check if we need to fetch more repositories
     while (totalFetched < totalProjects) {
       try {
@@ -69,7 +72,7 @@ const fetchGithubRepos =  async (query: string, language: string) => {
         repos.items.forEach((repo) => saveGithubRepoInDb(repo, language));
         totalFetched += repos.items.length; // Increment the count based on fetched items
 
-        console.log(`Fetched: ${totalFetched} repositories`);
+        logger.log("INFO", `Fetched: ${totalFetched} repositories`);
 
         // Update the `lastCreationDate` with the most recent repository's `created_at`
         if (repos.items.length > 0) {
@@ -82,28 +85,28 @@ const fetchGithubRepos =  async (query: string, language: string) => {
         if(error.status === 403) {
           if(retryNumber < 10) {
             retryNumber += 1
-            console.error(`Error fetching repos, (403) wait 5mins and retry (retry number ${retryNumber}):`, error.message);
+            logger.log("ERROR", `Error fetching repos, (403) wait 5mins and retry (retry number ${retryNumber}): ${error.message}`);
             await waitXms(5 * 60 * 1000)
           } else {
-            console.error("Error fetching repos, (403) max number of retry attempted => finsh job:", error.message);
+            logger.log("ERROR",`Error fetching repos, (403) max number of retry attempted => finsh job: ${error.message}`);
             break;
           }
         } else {
-          console.error("Error fetching repos (not 403):", error.message);
+          logger.log("ERROR", `Error fetching repos (not 403): ${error.message}`);
           break
         }
       }
     }
+    logger.log("INFO", "Finished fetching all repositories.");
 
     //Calculate trending metric and update is_trending field
+    logger.log("INFO", `Calculate trending metric for ${language}`);
     const calculatedTrendingMetrics = await trendingMetricService.calculateTrendingMetrics(language)
     await trendingMetricService.createOrUpdateTrendingMetric(language, calculatedTrendingMetrics)
 
     await repositoryService.updateIsTrendingReposFromLanguage(language)
-
-    console.log("Finished fetching all repositories.");
   } catch (error: any) {
-    console.error("Error initializing repository fetch:", error.message);
+    logger.log("ERROR", `Error initializing repository fetch: ${error.message}`);
   }
 };
   
