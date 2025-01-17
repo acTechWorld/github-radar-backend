@@ -1,14 +1,15 @@
 #!/bin/bash
 
-# Load the .env file using node (local dotenv from node_modules)
-PORT=$(node -e 'require("dotenv").config(); console.log(process.env.PORT || 3000);')
-BASE_URL=$(node -e 'require("dotenv").config(); console.log(process.env.BASE_URL || "http://localhost");')
+# Accept three variables as arguments
+HOST="$1"      # First argument: Host (e.g., "http://localhost")
+PORT="$2"      # Second argument: Port (e.g., "3000")
+LANGUAGE="$3"  # Third argument: Language (e.g., "javascript")
 
 # Construct the API URL
-API_URL="${BASE_URL}:${PORT}/api/github/fetchGithubRepos?language=$@"
+API_URL="${HOST}:${PORT}/api/github/fetchGithubRepos?language=${LANGUAGE}"
 
 # Print the constructed URL for debugging
-echo "$API_URL"
+echo "Constructed API URL: $API_URL"
 
 # Make the GET request
 curl -X GET "$API_URL"
