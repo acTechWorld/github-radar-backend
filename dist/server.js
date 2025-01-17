@@ -37,11 +37,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv = __importStar(require("dotenv"));
-const fetchGithubRepos_1 = require("./scripts/fetchGithubRepos");
 dotenv.config();
 const app_1 = __importDefault(require("./app"));
 const PORT = process.env.PORT || 3000;
 app_1.default.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
-(0, fetchGithubRepos_1.initCronsFetchGithubRepos)();

@@ -16,20 +16,11 @@ router.get('/', async (req, res) => {
 });
 router.get('/fetchGithubRepos', async (req, res) => {
     try {
-        (0, fetchGithubRepos_1.fetchGithubRepos)(req.query.query, req.query.language);
+        (0, fetchGithubRepos_1.fetchGithubRepos)(req.query.language);
         res.json('Script launched');
     }
     catch (error) {
         res.status(500).json({ message: 'Error starting script', error: error.message ?? error });
-    }
-});
-router.get('/initCronJobs', async (req, res) => {
-    try {
-        (0, fetchGithubRepos_1.initCronsFetchGithubRepos)();
-        res.json('Crons launched');
-    }
-    catch (error) {
-        res.status(500).json({ message: 'Error starting crons', error: error.message ?? error });
     }
 });
 exports.default = router;

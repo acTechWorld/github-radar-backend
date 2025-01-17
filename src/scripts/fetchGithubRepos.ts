@@ -12,101 +12,85 @@ const githubService= new GithubService()
 const repositoryService = new RepositoryService()
 const trendingMetricService = new TrendingMetricService()
 
+
+const queryMapper = {
+  Vue: VUE_QUERY,
+  React: REACT_QUERY
+}
 const waitXms = async (Xms: number) => {
   return new Promise(res => setTimeout(res, Xms))
 }
 
-//Cron params min hours * * *
-const initCronsFetchGithubRepos = () => {
-  logger.log("INFO", 'Init Cron Jobs');
-  //06:00
-  cron.schedule(
-    '0 6 * * *', 
-    () => {
-      logger.log("INFO", 'Cron job React triggered...');
-      fetchGithubRepos(REACT_QUERY, 'React')
-      logger.log("INFO", `Finish Cron job React`);
-    },
-    { timezone: FRANCE_TZ }
-  );
-  //10:00
-  cron.schedule(
-    '0 10 * * *', 
-    () => {
-      logger.log("INFO", 'Cron job Vue triggered...');
-      fetchGithubRepos(VUE_QUERY, 'Vue')
-      logger.log("INFO", `Finish Cron job Vue`);
-    }, 
-    { timezone: FRANCE_TZ }
-  );
-  
-}
-
-const fetchGithubRepos =  async (query: string, language: string) => {
+const fetchGithubRepos =  async (language: 'Vue' | 'React') => {
   logger.log("INFO", `init fetching ${language} projects`);
 
-  try {
-    // Fetch the first batch of repositories to get the total count and the first set of repositories
-    const { total_count: totalProjects } = await githubService.getAllRepositories({
-      qSearch: query,
-      perPage: 1, // Fetch only the count
-      page: 1,    // Fetch the first page (only for the count)
-    });
-    
-    let totalFetched = 0;
-    let retryNumber = 0;
-    let lastPushed: string | undefined = undefined;
-
-    logger.log("INFO", `${totalProjects} ${language} projects to fetch`);
-    // Check if we need to fetch more repositories
-    while (totalFetched < totalProjects) {
-      try {
-        // Fetch the next batch of repositories using the creation_date filter (last fetched repository date)
-        const repos = await githubService.getAllRepositories({
-          qSearch: lastPushed ? `language:${language} stars:>=10 pushed:<=${lastPushed}` : query,
-          perPage: 100,
-          sort: 'updated', // Filter based on the last creation date
-        });
-
-        // Process each fetched repository (e.g., save to DB)
-        repos.items.forEach((repo) => saveGithubRepoInDb(repo, language));
-        totalFetched += repos.items.length; // Increment the count based on fetched items
-
-        logger.log("INFO", `Fetched: ${totalFetched} repositories`);
-
-        // Update the `lastCreationDate` with the most recent repository's `created_at`
-        if (repos.items.length > 0) {
-          lastPushed = repos.items.sort((a,b) => (new Date(b.last_pushed) as any) - (new Date(a.last_pushed) as any))?.[repos.items.length - 1].last_pushed;
-        }
-        retryNumber = 0
-        await waitXms(10 * 1000)
-
-      } catch (error: any) {
-        if(error.status === 403) {
-          if(retryNumber < 10) {
-            retryNumber += 1
-            logger.log("ERROR", `Error fetching repos, (403) wait 5mins and retry (retry number ${retryNumber}): ${error.message}`);
-            await waitXms(5 * 60 * 1000)
-          } else {
-            logger.log("ERROR",`Error fetching repos, (403) max number of retry attempted => finsh job: ${error.message}`);
-            break;
+  const query = queryMapper[language]
+  if(query) {
+    try {
+      // Fetch the first batch of repositories to get the total count and the first set of repositories
+      const { total_count: totalProjects } = await githubService.getAllRepositories({
+        qSearch: query,
+        perPage: 1, // Fetch only the count
+        page: 1,    // Fetch the first page (only for the count)
+      });
+      
+      let totalFetched = 0;
+      let retryNumber = 0;
+      let lastPushed: string | undefined = undefined;
+  
+      logger.log("INFO", `${totalProjects} ${language} projects to fetch`);
+      // Check if we need to fetch more repositories
+      while (totalFetched < totalProjects) {
+        try {
+          // Fetch the next batch of repositories using the creation_date filter (last fetched repository date)
+          const repos = await githubService.getAllRepositories({
+            qSearch: lastPushed ? `language:${language} stars:>=10 pushed:<=${lastPushed}` : query,
+            perPage: 100,
+            sort: 'updated', // Filter based on the last creation date
+          });
+  
+          // Process each fetched repository (e.g., save to DB)
+          repos.items.forEach((repo) => saveGithubRepoInDb(repo, language));
+          totalFetched += repos.items.length; // Increment the count based on fetched items
+  
+          logger.log("INFO", `Fetched: ${totalFetched} repositories`);
+  
+          // Update the `lastCreationDate` with the most recent repository's `created_at`
+          if (repos.items.length > 0) {
+            lastPushed = repos.items.sort((a,b) => (new Date(b.last_pushed) as any) - (new Date(a.last_pushed) as any))?.[repos.items.length - 1].last_pushed;
           }
-        } else {
-          logger.log("ERROR", `Error fetching repos (not 403): ${error.message}`);
-          break
+          retryNumber = 0
+          await waitXms(10 * 1000)
+  
+        } catch (error: any) {
+          if(error.status === 403) {
+            if(retryNumber < 10) {
+              retryNumber += 1
+              logger.log("ERROR", `Error fetching repos, (403) wait 5mins and retry (retry number ${retryNumber}): ${error.message}`);
+              await waitXms(5 * 60 * 1000)
+            } else {
+              logger.log("ERROR",`Error fetching repos, (403) max number of retry attempted => finsh job: ${error.message}`);
+              break;
+            }
+          } else {
+            logger.log("ERROR", `Error fetching repos (not 403): ${error.message}`);
+            break
+          }
         }
       }
+      logger.log("INFO", "Finished fetching all repositories.");
+  
+      //Calculate trending metric and update is_trending field
+      logger.log("INFO", `Calculate trending metric for ${language}`);
+      const calculatedTrendingMetrics = await trendingMetricService.calculateTrendingMetrics(language)
+      await trendingMetricService.createOrUpdateTrendingMetric(language, calculatedTrendingMetrics)
+  
+      await repositoryService.updateIsTrendingReposFromLanguage(language)
+    } catch (error: any) {
+      logger.log("ERROR", `Error initializing repository fetch: ${error.message}`);
     }
-    logger.log("INFO", "Finished fetching all repositories.");
-
-    //Calculate trending metric and update is_trending field
-    logger.log("INFO", `Calculate trending metric for ${language}`);
-    const calculatedTrendingMetrics = await trendingMetricService.calculateTrendingMetrics(language)
-    await trendingMetricService.createOrUpdateTrendingMetric(language, calculatedTrendingMetrics)
-
-    await repositoryService.updateIsTrendingReposFromLanguage(language)
-  } catch (error: any) {
-    logger.log("ERROR", `Error initializing repository fetch: ${error.message}`);
+  } else {
+    logger.log('ERROR', `No query found for language: ${language}`)
   }
 };
   
@@ -162,4 +146,4 @@ const saveGithubRepoInDb = async (repo: GithubApiRepo, basedLanguage: string) =>
     
 }
 
-export {fetchGithubRepos, initCronsFetchGithubRepos}
+export {fetchGithubRepos}
