@@ -16,12 +16,6 @@ class RepositoryService {
         const page = parseInt(queries.page) || 1;
         const limit = parseInt(queries.limit) || 20;
         const skip = (page - 1) * limit;
-        // **Search filter for name and description fields**:
-        if (queries.search) {
-            const searchTerm = `%${queries.search}%`; // Add wildcards for LIKE search
-            where.name = (0, typeorm_1.Like)(searchTerm); // Search in the `name` field
-            where.description = (0, typeorm_1.Like)(searchTerm); // Search in the `description` field
-        }
         if (queries.stars) {
             const [min, max] = queries.stars.split('-').map(Number);
             if (!isNaN(min) && !isNaN(max)) {
@@ -178,6 +172,16 @@ class RepositoryService {
             )`, { [`language${index}`]: language });
                 });
             }
+        }
+        if (queries.search) {
+            const searchTerm = `%${queries.search}%`; // Add wildcards for LIKE search
+            const exactTerm = queries.search; // Exact match
+            queryBuilder.andWhere('(repo.name = :exactName OR repo.name LIKE :wildcardName OR repo.description = :exactDesc OR repo.description LIKE :wildcardDesc)', {
+                exactName: exactTerm,
+                wildcardName: searchTerm,
+                exactDesc: exactTerm,
+                wildcardDesc: searchTerm,
+            });
         }
         // Apply pagination
         const [items, totalCount] = await queryBuilder
