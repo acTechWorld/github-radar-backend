@@ -44,11 +44,10 @@ const fetchGithubRepos =  async (language: 'Vue' | 'React') => {
         try {
           // Fetch the next batch of repositories using the creation_date filter (last fetched repository date)
           const repos = await githubService.getAllRepositories({
-            qSearch: lastPushed ? `language:${language} stars:>=10 pushed:<=${lastPushed}` : query,
+            qSearch: lastPushed ? `${query} pushed:<=${lastPushed}` : query,
             perPage: 100,
             sort: 'updated', // Filter based on the last creation date
           });
-  
           // Process each fetched repository (e.g., save to DB)
           repos.items.forEach((repo) => saveGithubRepoInDb(repo, language));
           totalFetched += repos.items.length; // Increment the count based on fetched items
