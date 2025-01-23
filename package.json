@@ -19,8 +19,10 @@
     "express": "^4.21.2",
     "fs": "^0.0.1-security",
     "node-cron": "^3.0.3",
+    "openai": "^4.80.0",
     "pg": "^8.13.1",
     "pg-hstore": "^2.3.4",
+    "python-shell": "^5.0.0",
     "reflect-metadata": "^0.2.2",
     "typeorm": "^0.3.20"
   },
