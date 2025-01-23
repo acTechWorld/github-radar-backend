@@ -41,7 +41,7 @@ const fetchGithubRepos = async (language) => {
                 try {
                     // Fetch the next batch of repositories using the creation_date filter (last fetched repository date)
                     const repos = await githubService.getAllRepositories({
-                        qSearch: lastPushed ? `language:${language} stars:>=10 pushed:<=${lastPushed}` : query,
+                        qSearch: lastPushed ? `${query} pushed:<=${lastPushed}` : query,
                         perPage: 100,
                         sort: 'updated', // Filter based on the last creation date
                     });
