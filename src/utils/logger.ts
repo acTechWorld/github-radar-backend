@@ -36,7 +36,7 @@ const cleanOldLogs = () => {
 };
 
 // Log a message
-const log = (type: 'INFO' | 'ERROR', message: string) => {
+const log = (type: 'INFO' | 'ERROR' | 'DEBUG', message: string) => {
     ensureLogsDir(); // Ensure logs directory exists
     cleanOldLogs(); // Clean old logs
 

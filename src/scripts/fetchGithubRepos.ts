@@ -42,18 +42,24 @@ const fetchGithubRepos =  async (language: 'Vue' | 'React') => {
       // Check if we need to fetch more repositories
       while (totalFetched < totalProjects) {
         try {
+          let startFetchBatch, fetchBatchDuration;
+          if (process.env.DEBUG) startFetchBatch = Date.now();
           // Fetch the next batch of repositories using the creation_date filter (last fetched repository date)
           const repos = await githubService.getAllRepositories({
             qSearch: lastPushed ? `${query} pushed:<=${lastPushed}` : query,
             perPage: 100,
             sort: 'updated', // Filter based on the last creation date
           });
+
+          if (process.env.DEBUG && startFetchBatch) {
+            fetchBatchDuration = Date.now() - startFetchBatch;
+            logger.log("DEBUG", `Fetched ${repos.items.length} repositories (API call took ${fetchBatchDuration}ms)`);
+          }
           // Process each fetched repository (e.g., save to DB)
           repos.items.forEach((repo) => saveGithubRepoInDb(repo, language));
           totalFetched += repos.items.length; // Increment the count based on fetched items
   
           logger.log("INFO", `Fetched: ${totalFetched} repositories`);
-  
           // Update the `lastCreationDate` with the most recent repository's `created_at`
           if (repos.items.length > 0) {
             lastPushed = repos.items.sort((a,b) => (new Date(b.last_pushed) as any) - (new Date(a.last_pushed) as any))?.[repos.items.length - 1].last_pushed;
