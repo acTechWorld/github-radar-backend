@@ -1,7 +1,7 @@
 // src/services/repository.service.ts
 import { Repository } from '../models/Repository';
 import { AppDataSource } from '../db';
-import { Any, ArrayContains, Between, In, LessThanOrEqual, MoreThanOrEqual, ArrayOverlap, And, FindOperator, Like } from 'typeorm';
+import { Any, ArrayContains, Between, In, LessThanOrEqual, MoreThanOrEqual, ArrayOverlap, And, FindOperator, Like, IsNull } from 'typeorm';
 import { RepositoryBody, RepositoryQuery, RepositoryUpdateBody } from '../types/types';
 import { Language } from '../models/Language';
 import { TrendingMetric } from '../models/TrendingMetric';
@@ -310,7 +310,7 @@ export class RepositoryService {
       .createQueryBuilder("repository")
       .innerJoinAndSelect("repository.languages", "language", "language.name = :language", { language })
       .getMany();
-    const trendingMetric = await this.trendingMetricRepo.findOneBy({ language });
+    const trendingMetric = await this.trendingMetricRepo.findOne({ where :{ language, repository_creation_date: IsNull()}});
     if(trendingMetric) {
       allRepositories.forEach(repo => {
         const isTrending = this.isTrending(trendingMetric, repo, language )
