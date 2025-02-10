@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToMany } from 'typeorm';
+import { Repository } from './Repository';
 
 @Entity('trending_metrics')
 export class TrendingMetric {
@@ -38,4 +39,7 @@ export class TrendingMetric {
 
   @UpdateDateColumn({ type: 'timestamp' })
   updated_at!: Date;
+
+  @ManyToMany(() => Repository, (repository) => repository.trending_metrics)
+  repositories!: Repository[];
 }

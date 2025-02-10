@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, AfterLoad, BeforeInsert, BeforeUpdate, ManyToOne } from 'typeorm';
 import { Language } from './Language';
+import { TrendingMetric } from './TrendingMetric';
 
 @Entity('repositories')
 export class Repository {
@@ -132,6 +133,17 @@ export class Repository {
   @Column({ type: 'varchar', length: 50, nullable: true })
   owner_type!: string; // 'Organization' or 'Individual'
 
-  @Column({ type: 'boolean', default: false })
-  is_trending!: boolean;
+  @ManyToMany(() => TrendingMetric, (trending_metric) => trending_metric.repositories, { cascade: true })
+  @JoinTable({
+    name: 'repository_trendingMetrics',
+    joinColumn: {
+      name: 'repository_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'trending_metric_id',
+      referencedColumnName: 'id',
+    },
+  })
+  trending_metrics!: TrendingMetric[]
 }
