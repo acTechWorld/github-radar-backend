@@ -60,8 +60,8 @@ export class TrendingMetricService {
         return 0; // Return a default threshold if no data is available
       }
       const sortedRepositories = [...repositories].sort((a, b) => b.weightedTrendingScore[key] - a.weightedTrendingScore[key]);
-      const top10Percent = sortedRepositories.slice(0, Math.ceil(sortedRepositories.length * 0.05));
-      return top10Percent.length > 0 ? top10Percent[top10Percent.length - 1].weightedTrendingScore[key] : 0;
+      const top5Percent = sortedRepositories.slice(0, Math.ceil(sortedRepositories.length * 0.05));
+      return top5Percent.length > 0 ? top5Percent[top5Percent.length - 1].weightedTrendingScore[key] : 0;
     };
     
     const starsThreshold = calculateThresholds(repositoriesWithScores, 'stars');
