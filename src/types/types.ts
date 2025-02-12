@@ -1,3 +1,5 @@
+import { TrendingMetric } from "@/models/TrendingMetric";
+
 type Operation =  'OR' | 'AND'
 
 export interface RepositoryQuery {
@@ -20,7 +22,6 @@ export interface RepositoryQuery {
     licenses?: string;
     owner_types?: string;
     open_issues_count?: string;
-    is_trending?: boolean;
     stars_last_week?: string;
     page: string;
     limit: string;
@@ -40,7 +41,6 @@ export interface RepositoryBody {
     license?: string;
     topics?: string[];
     owner_type?: string; // 'Organization' or 'Individual'
-    is_trending?: boolean;
     stars_last_week?: number;
     forks_last_week?: number;
     watchers_last_week?: number;
@@ -61,10 +61,10 @@ export interface RepositoryBody {
     watchers_count?: number;
     open_issues_count?: number;
     languages?: string[]; // List of language names (strings)
+    trendingMetrics?: {type: TypeTrendingMetrics, language: string}[]; // List of language names (strings)
     license?: string;
     topics?: string[];
     owner_type?: string; // 'Organization' or 'Individual'
-    is_trending?: boolean;
     stars_last_week?: number;
     forks_last_week?: number;
     watchers_last_week?: number;
@@ -100,6 +100,8 @@ export interface RepositoryBody {
     owner_type: string;
   }
 
+  export type TypeTrendingMetrics = 'global' | 'last_6_months'
+
   export interface CalculatedTrendingMetrics {
     stars_threshold: number;
     forks_threshold: number;
@@ -108,5 +110,6 @@ export interface RepositoryBody {
     max_stars: number;
     max_forks: number;
     max_watchers: number;
+    type: TypeTrendingMetrics
   }
   

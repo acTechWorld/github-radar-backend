@@ -1,17 +1,17 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToMany } from 'typeorm';
 import { Repository } from './Repository';
+import { TypeTrendingMetrics } from '@/types/types';
 
 @Entity('trending_metrics')
 export class TrendingMetric {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ type: 'varchar', length: 100, unique: true })
+  @Column({ type: 'varchar', length: 100 })
   language!: string; // e.g., "JavaScript", "Python"
 
-  //Creation date of the population of repo that we analysed
-  @Column({ type: 'timestamp', nullable: true, default: null})
-  repository_creation_date!: Date;
+  @Column({ type: 'varchar', length: 100 })
+  type!: TypeTrendingMetrics;
 
   @Column({ type: 'float', default: 0.5 })
   stars_threshold!: number; // Minimum stars growth score in a week to be trending

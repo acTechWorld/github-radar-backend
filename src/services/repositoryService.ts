@@ -1,8 +1,8 @@
 // src/services/repository.service.ts
 import { Repository } from '../models/Repository';
 import { AppDataSource } from '../db';
-import { Any, ArrayContains, Between, In, LessThanOrEqual, MoreThanOrEqual, ArrayOverlap, And, FindOperator, Like, IsNull } from 'typeorm';
-import { RepositoryBody, RepositoryQuery, RepositoryUpdateBody } from '../types/types';
+import { Any, ArrayContains, Between, In, LessThanOrEqual, MoreThanOrEqual, ArrayOverlap } from 'typeorm';
+import { RepositoryBody, RepositoryQuery, RepositoryUpdateBody, TypeTrendingMetrics } from '../types/types';
 import { Language } from '../models/Language';
 import { TrendingMetric } from '../models/TrendingMetric';
 
@@ -149,7 +149,6 @@ export class RepositoryService {
     if (queries.stars_last_week && !isNaN(parseInt(queries.stars_last_week))) {
       where.stars_last_week = MoreThanOrEqual(parseInt(queries.stars_last_week));
     }
-    if (queries.is_trending !== undefined) where.is_trending = queries.is_trending;
 
     const queryBuilder = this.repositoryRepo.createQueryBuilder('repo')
     .leftJoinAndSelect('repo.languages', 'language') // Join the languages relation
@@ -251,7 +250,7 @@ export class RepositoryService {
   }
 
   async updateRepository(id: number, data: RepositoryUpdateBody) {
-    const {languages, stars_count, forks_count,watchers_count, ...otherDatas} = data
+    const {languages, trendingMetrics, stars_count, forks_count, watchers_count, ...otherDatas} = data
     const repository = await this.repositoryRepo.findOne({where: { id }, relations: ['languages']});
     if (!repository) return null;
     let mergedDatas: any = otherDatas
@@ -270,6 +269,22 @@ export class RepositoryService {
       }
       mergedDatas.languages = existingLanguages
     }
+
+    if(trendingMetrics && trendingMetrics.length > 0) {
+      const existingTrendingMetrics = await this.trendingMetricRepo.findBy({
+        language: In(trendingMetrics.map(t => t.language)),  // 'In' allows searching for multiple values at once
+        type: In(trendingMetrics.map(t => t.type)),  // 'In' allows searching for multiple values at once
+      });
+    
+      const missingTrendingMetrics = trendingMetrics.filter((t) => !existingTrendingMetrics.find(existing => t.language === existing.language && t.type === existing.type));
+    
+      if (missingTrendingMetrics.length > 0) {
+        // If some trending metrics are missing, return an error
+        throw new Error(`The following trending metrics do not exist: ${missingTrendingMetrics.join(', ')}`);
+      }
+      mergedDatas.trendingMetrics = existingTrendingMetrics
+    }
+
     if(stars_count) {
       const starsHistoryList = repository.stars_history?.split(',').slice(0,6)
       mergedDatas.stars_history = [
@@ -305,16 +320,19 @@ export class RepositoryService {
     return result.affected !== 0;
   }
 
-  async updateIsTrendingReposFromLanguage(language: string) {
+  async updateIsTrendingReposFromLanguage(language: string, typeTrendingMetrics: TypeTrendingMetrics, additionalWhereParams?: any) {
     const allRepositories = await this.repositoryRepo
       .createQueryBuilder("repository")
+      .where(additionalWhereParams ?? {})
       .innerJoinAndSelect("repository.languages", "language", "language.name = :language", { language })
       .getMany();
-    const trendingMetric = await this.trendingMetricRepo.findOne({ where :{ language, repository_creation_date: IsNull()}});
+    const trendingMetric = await this.trendingMetricRepo.findOne({ where :{ language, type: typeTrendingMetrics}});
     if(trendingMetric) {
       allRepositories.forEach(repo => {
         const isTrending = this.isTrending(trendingMetric, repo, language )
-        this.updateRepository(repo.id, {is_trending: isTrending})
+        if(isTrending) {
+          this.updateRepository(repo.id, {trendingMetrics: [...(repo.trending_metrics?? []), {language: trendingMetric.language, type: trendingMetric.type}]})
+        }
       })
     }
   }

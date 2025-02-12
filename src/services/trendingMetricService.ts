@@ -1,20 +1,23 @@
 import { Repository } from "../models/Repository";  // Assuming Repository is your TypeORM entity
 import { AppDataSource } from '../db';
 import { TrendingMetric } from '../models/TrendingMetric';
-import { CalculatedTrendingMetrics } from "../types/types";
+import { CalculatedTrendingMetrics, TypeTrendingMetrics } from "../types/types";
+import { MoreThanOrEqual } from "typeorm";
 
 export class TrendingMetricService {
   private repositoryRepo = AppDataSource.getRepository(Repository);
   private trendingMetricRepo = AppDataSource.getRepository(TrendingMetric);
 
   // Calculate the thresholds for stars, forks, and watchers with size-based weight
-  async calculateTrendingMetrics(language: string): Promise<CalculatedTrendingMetrics> {
+  async calculateTrendingMetrics(language: string, additionalWhereParams?: any): Promise<CalculatedTrendingMetrics> {
+
     // Fetch repositories with at least two values in history fields
     const allRepositories = await this.repositoryRepo
       .createQueryBuilder("repository")
+      .where(additionalWhereParams ?? {})
       .innerJoinAndSelect("repository.languages", "language", "language.name = :language", { language })
       .getMany();
-      
+    
     const filteredRepositories = allRepositories.filter(repo => {
       return (repo.stars_last_week && repo.stars_history.split(",")?.length > 1) || 
          (repo.forks_last_week && repo.forks_history.split(",")?.length > 1) || 
@@ -77,7 +80,8 @@ export class TrendingMetricService {
       combined_threshold: combinedThreshold,
       max_stars: maxStars,
       max_forks: maxForks,
-      max_watchers: maxWatchers
+      max_watchers: maxWatchers,
+      type: 'global' // default value
     };
     return trendingMetrics;
   }
@@ -85,7 +89,7 @@ export class TrendingMetricService {
   // Create or update trending metric for the language
   async createOrUpdateTrendingMetric(language: string, calculatedTrendingMetrics: CalculatedTrendingMetrics): Promise<void> {
     // Try to find if there's an existing entry for the language
-    const existingMetric = await this.trendingMetricRepo.findOne({ where: { language } });
+    const existingMetric = await this.trendingMetricRepo.findOne({ where: { language, type: calculatedTrendingMetrics.type } });
     if (existingMetric) {
       // If the metric already exists, update it
       existingMetric.stars_threshold = calculatedTrendingMetrics.stars_threshold;
@@ -95,6 +99,7 @@ export class TrendingMetricService {
       existingMetric.max_stars = calculatedTrendingMetrics.max_stars;
       existingMetric.max_forks = calculatedTrendingMetrics.max_forks;
       existingMetric.max_watchers = calculatedTrendingMetrics.max_watchers;
+      existingMetric.type = calculatedTrendingMetrics.type
       // Save the updated metric
       await this.trendingMetricRepo.save(existingMetric);
     } else {
@@ -108,8 +113,19 @@ export class TrendingMetricService {
       newTrendingMetric.max_stars = calculatedTrendingMetrics.max_stars;
       newTrendingMetric.max_forks = calculatedTrendingMetrics.max_forks;
       newTrendingMetric.max_watchers = calculatedTrendingMetrics.max_watchers;
+      newTrendingMetric.type = calculatedTrendingMetrics.type
       // Save the new metric
       await this.trendingMetricRepo.save(newTrendingMetric);
     }
+  }
+
+  generateFiltersRepoFromTrendingMetricType(type: TypeTrendingMetrics){
+    const result: any = {}
+    if(type === 'last_6_months') {
+      var d = new Date();
+      d.setMonth(d.getMonth() - 6);
+      result.creation_date = MoreThanOrEqual(d)
+    }
+    return result;
   }
 }

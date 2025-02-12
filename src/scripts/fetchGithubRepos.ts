@@ -1,9 +1,8 @@
 import { GithubService } from "../services/githubService"
-import { GithubApiRepo } from "../types/types"
+import { GithubApiRepo, TypeTrendingMetrics } from "../types/types"
 import { RepositoryService } from "../services/repositoryService"
 import { TrendingMetricService } from "../services/trendingMetricService"
 import logger from "../utils/logger"
-import cron from 'node-cron'
 const VUE_QUERY = 'language:Vue stars:>=10'
 const REACT_QUERY = 'topic:react stars:>=10 language:Typescript language:Javascript'
 const FRANCE_TZ = 'Europe/Paris';
@@ -85,12 +84,15 @@ const fetchGithubRepos =  async (language: 'Vue' | 'React') => {
       }
       logger.log("INFO", "Finished fetching all repositories.");
   
-      //Calculate trending metric and update is_trending field
+      //Calculate trending metric and update trending metrics repo relation
       logger.log("INFO", `Calculate trending metric for ${language}`);
-      const calculatedTrendingMetrics = await trendingMetricService.calculateTrendingMetrics(language)
-      await trendingMetricService.createOrUpdateTrendingMetric(language, calculatedTrendingMetrics)
-  
-      await repositoryService.updateIsTrendingReposFromLanguage(language)
+
+      const trendingMetricsTypes: TypeTrendingMetrics[] = ['global', 'last_6_months']
+      for(const trendingMetricsType of trendingMetricsTypes) {
+        const calculatedTrendingMetrics = await trendingMetricService.calculateTrendingMetrics(language, trendingMetricService.generateFiltersRepoFromTrendingMetricType(trendingMetricsType))
+        await trendingMetricService.createOrUpdateTrendingMetric(language, {...calculatedTrendingMetrics, type : trendingMetricsType})
+        await repositoryService.updateIsTrendingReposFromLanguage(language, trendingMetricsType, trendingMetricService.generateFiltersRepoFromTrendingMetricType(trendingMetricsType))
+      }
     } catch (error: any) {
       logger.log("ERROR", `Error initializing repository fetch: ${error.message}`);
     }
@@ -145,7 +147,6 @@ const saveGithubRepoInDb = async (repo: GithubApiRepo, basedLanguage: string) =>
         creation_date: new Date(repo.creation_date),
         last_updated: new Date(repo.last_updated),
         owner_type: repo.owner_type || undefined,
-          // is_trending: Boolean(repo.is_trending), // Logic to determine if the repo is trending
       })
   }
     
