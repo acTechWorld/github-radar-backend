@@ -86,6 +86,14 @@ export class TrendingMetricService {
     return trendingMetrics;
   }
 
+  async clearTrendingMetricRepos(params: any): Promise<void> {
+      const allMetrics = await this.trendingMetricRepo.find({where: params})
+      allMetrics.forEach(async metric => {
+        metric.repositories = []
+        await this.trendingMetricRepo.save(metric)
+      })
+  }
+
   // Create or update trending metric for the language
   async createOrUpdateTrendingMetric(language: string, calculatedTrendingMetrics: CalculatedTrendingMetrics): Promise<void> {
     // Try to find if there's an existing entry for the language

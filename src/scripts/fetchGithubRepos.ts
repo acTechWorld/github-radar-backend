@@ -83,9 +83,12 @@ const fetchGithubRepos =  async (language: 'Vue' | 'React') => {
         }
       }
       logger.log("INFO", "Finished fetching all repositories.");
-  
+      
       //Calculate trending metric and update trending metrics repo relation
       logger.log("INFO", `Calculate trending metric for ${language}`);
+
+      //Clear existing trendingMetric repos
+      trendingMetricService.clearTrendingMetricRepos({language: language})
 
       const trendingMetricsTypes: TypeTrendingMetrics[] = ['global', 'last_6_months']
       for(const trendingMetricsType of trendingMetricsTypes) {

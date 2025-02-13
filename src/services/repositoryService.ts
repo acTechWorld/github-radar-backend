@@ -282,7 +282,7 @@ export class RepositoryService {
         // If some trending metrics are missing, return an error
         throw new Error(`The following trending metrics do not exist: ${missingTrendingMetrics.join(', ')}`);
       }
-      mergedDatas.trendingMetrics = existingTrendingMetrics
+      mergedDatas.trending_metrics = existingTrendingMetrics
     }
 
     if(stars_count) {
@@ -325,6 +325,7 @@ export class RepositoryService {
       .createQueryBuilder("repository")
       .where(additionalWhereParams ?? {})
       .innerJoinAndSelect("repository.languages", "language", "language.name = :language", { language })
+      .leftJoinAndSelect('repository.trending_metrics', 'trending_metrics')
       .getMany();
     const trendingMetric = await this.trendingMetricRepo.findOne({ where :{ language, type: typeTrendingMetrics}});
     if(trendingMetric) {
