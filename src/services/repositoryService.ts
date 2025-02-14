@@ -152,6 +152,7 @@ export class RepositoryService {
 
     const queryBuilder = this.repositoryRepo.createQueryBuilder('repo')
     .leftJoinAndSelect('repo.languages', 'language') // Join the languages relation
+    .leftJoinAndSelect('repo.trending_metrics', 'trending_metric') // Join the languages relation
     .where(where);
   
     if (queries.languages) {
@@ -188,6 +189,27 @@ export class RepositoryService {
           wildcardDesc: searchTerm,
         }
       );
+    }
+
+    if(queries.trendingTypes) {
+      const listTrendingTypes = queries.trendingTypes.split(',')
+      if (queries.trendingTypesOperation === 'OR') {
+        // If 'OR', use IN to check if any language matches
+        queryBuilder.andWhere('trending_metric.type IN (:...listTrendingTypes)', { listTrendingTypes });
+      } else if (queries.trendingTypesOperation === 'AND') {
+        // If 'AND', ensure that all languages are matched
+        listTrendingTypes.forEach((trendingType, index) => {
+          queryBuilder.andWhere(
+            `EXISTS (
+              SELECT 1 FROM repository_trending_metrics rt
+              INNER JOIN trending_metrics tm ON tm.id = rt.trending_metric_id
+              WHERE rt.repository_id = repo.id
+              AND tm.type = :trendingType${index}
+            )`,
+            { [`trendingType${index}`]: trendingType }
+          );
+        });
+      }
     }
   
     // Apply pagination

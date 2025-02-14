@@ -135,7 +135,7 @@ export class Repository {
 
   @ManyToMany(() => TrendingMetric, (trending_metric) => trending_metric.repositories, { cascade: true })
   @JoinTable({
-    name: 'repository_trendingMetrics',
+    name: 'repository_trending_metrics',
     joinColumn: {
       name: 'repository_id',
       referencedColumnName: 'id',

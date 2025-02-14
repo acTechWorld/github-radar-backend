@@ -25,6 +25,8 @@ export interface RepositoryQuery {
     stars_last_week?: string;
     page: string;
     limit: string;
+    trendingTypes?: string
+    trendingTypesOperation? : Operation
   }
 export interface RepositoryBody {
     github_id: number;
