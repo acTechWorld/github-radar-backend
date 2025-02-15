@@ -82,11 +82,16 @@ const fetchGithubRepos = async (language) => {
                 }
             }
             logger_1.default.log("INFO", "Finished fetching all repositories.");
-            //Calculate trending metric and update is_trending field
+            //Calculate trending metric and update trending metrics repo relation
             logger_1.default.log("INFO", `Calculate trending metric for ${language}`);
-            const calculatedTrendingMetrics = await trendingMetricService.calculateTrendingMetrics(language);
-            await trendingMetricService.createOrUpdateTrendingMetric(language, calculatedTrendingMetrics);
-            await repositoryService.updateIsTrendingReposFromLanguage(language);
+            //Clear existing trendingMetric repos
+            trendingMetricService.clearTrendingMetricRepos({ language: language });
+            const trendingMetricsTypes = ['global', 'last_6_months'];
+            for (const trendingMetricsType of trendingMetricsTypes) {
+                const calculatedTrendingMetrics = await trendingMetricService.calculateTrendingMetrics(language, trendingMetricService.generateFiltersRepoFromTrendingMetricType(trendingMetricsType));
+                await trendingMetricService.createOrUpdateTrendingMetric(language, { ...calculatedTrendingMetrics, type: trendingMetricsType });
+                await repositoryService.updateIsTrendingReposFromLanguage(language, trendingMetricsType, trendingMetricService.generateFiltersRepoFromTrendingMetricType(trendingMetricsType));
+            }
         }
         catch (error) {
             logger_1.default.log("ERROR", `Error initializing repository fetch: ${error.message}`);
@@ -140,7 +145,6 @@ const saveGithubRepoInDb = async (repo, basedLanguage) => {
             creation_date: new Date(repo.creation_date),
             last_updated: new Date(repo.last_updated),
             owner_type: repo.owner_type || undefined,
-            // is_trending: Boolean(repo.is_trending), // Logic to determine if the repo is trending
         });
     }
 };

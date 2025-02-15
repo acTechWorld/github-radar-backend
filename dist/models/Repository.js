@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Repository = void 0;
 const typeorm_1 = require("typeorm");
 const Language_1 = require("./Language");
+const TrendingMetric_1 = require("./TrendingMetric");
 let Repository = class Repository {
     id;
     github_id;
@@ -75,7 +76,7 @@ let Repository = class Repository {
     //Technical Date
     updated_at;
     owner_type; // 'Organization' or 'Individual'
-    is_trending;
+    trending_metrics;
 };
 exports.Repository = Repository;
 __decorate([
@@ -211,9 +212,20 @@ __decorate([
     __metadata("design:type", String)
 ], Repository.prototype, "owner_type", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'boolean', default: false }),
-    __metadata("design:type", Boolean)
-], Repository.prototype, "is_trending", void 0);
+    (0, typeorm_1.ManyToMany)(() => TrendingMetric_1.TrendingMetric, (trending_metric) => trending_metric.repositories, { cascade: true }),
+    (0, typeorm_1.JoinTable)({
+        name: 'repository_trending_metrics',
+        joinColumn: {
+            name: 'repository_id',
+            referencedColumnName: 'id',
+        },
+        inverseJoinColumn: {
+            name: 'trending_metric_id',
+            referencedColumnName: 'id',
+        },
+    }),
+    __metadata("design:type", Array)
+], Repository.prototype, "trending_metrics", void 0);
 exports.Repository = Repository = __decorate([
     (0, typeorm_1.Entity)('repositories')
 ], Repository);

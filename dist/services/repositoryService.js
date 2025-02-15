@@ -150,10 +150,9 @@ class RepositoryService {
         if (queries.stars_last_week && !isNaN(parseInt(queries.stars_last_week))) {
             where.stars_last_week = (0, typeorm_1.MoreThanOrEqual)(parseInt(queries.stars_last_week));
         }
-        if (queries.is_trending !== undefined)
-            where.is_trending = queries.is_trending;
         const queryBuilder = this.repositoryRepo.createQueryBuilder('repo')
             .leftJoinAndSelect('repo.languages', 'language') // Join the languages relation
+            .leftJoinAndSelect('repo.trending_metrics', 'trending_metric') // Join the languages relation
             .where(where);
         if (queries.languages) {
             const languageNames = queries.languages.split(',').map((name) => name.trim());
@@ -182,6 +181,24 @@ class RepositoryService {
                 exactDesc: exactTerm,
                 wildcardDesc: searchTerm,
             });
+        }
+        if (queries.trendingTypes) {
+            const listTrendingTypes = queries.trendingTypes.split(',');
+            if (queries.trendingTypesOperation === 'OR') {
+                // If 'OR', use IN to check if any language matches
+                queryBuilder.andWhere('trending_metric.type IN (:...listTrendingTypes)', { listTrendingTypes });
+            }
+            else if (queries.trendingTypesOperation === 'AND') {
+                // If 'AND', ensure that all languages are matched
+                listTrendingTypes.forEach((trendingType, index) => {
+                    queryBuilder.andWhere(`EXISTS (
+              SELECT 1 FROM repository_trending_metrics rt
+              INNER JOIN trending_metrics tm ON tm.id = rt.trending_metric_id
+              WHERE rt.repository_id = repo.id
+              AND tm.type = :trendingType${index}
+            )`, { [`trendingType${index}`]: trendingType });
+                });
+            }
         }
         // Apply pagination
         const [items, totalCount] = await queryBuilder
@@ -232,7 +249,7 @@ class RepositoryService {
         return await this.repositoryRepo.save(newRepository);
     }
     async updateRepository(id, data) {
-        const { languages, stars_count, forks_count, watchers_count, ...otherDatas } = data;
+        const { languages, trendingMetrics, stars_count, forks_count, watchers_count, ...otherDatas } = data;
         const repository = await this.repositoryRepo.findOne({ where: { id }, relations: ['languages'] });
         if (!repository)
             return null;
@@ -249,6 +266,18 @@ class RepositoryService {
                 throw new Error(`The following languages do not exist: ${missingLanguages.join(', ')}`);
             }
             mergedDatas.languages = existingLanguages;
+        }
+        if (trendingMetrics && trendingMetrics.length > 0) {
+            const existingTrendingMetrics = await this.trendingMetricRepo.findBy({
+                language: (0, typeorm_1.In)(trendingMetrics.map(t => t.language)), // 'In' allows searching for multiple values at once
+                type: (0, typeorm_1.In)(trendingMetrics.map(t => t.type)), // 'In' allows searching for multiple values at once
+            });
+            const missingTrendingMetrics = trendingMetrics.filter((t) => !existingTrendingMetrics.find(existing => t.language === existing.language && t.type === existing.type));
+            if (missingTrendingMetrics.length > 0) {
+                // If some trending metrics are missing, return an error
+                throw new Error(`The following trending metrics do not exist: ${missingTrendingMetrics.join(', ')}`);
+            }
+            mergedDatas.trending_metrics = existingTrendingMetrics;
         }
         if (stars_count) {
             const starsHistoryList = repository.stars_history?.split(',').slice(0, 6);
@@ -279,16 +308,20 @@ class RepositoryService {
         const result = await this.repositoryRepo.delete(id);
         return result.affected !== 0;
     }
-    async updateIsTrendingReposFromLanguage(language) {
+    async updateIsTrendingReposFromLanguage(language, typeTrendingMetrics, additionalWhereParams) {
         const allRepositories = await this.repositoryRepo
             .createQueryBuilder("repository")
+            .where(additionalWhereParams ?? {})
             .innerJoinAndSelect("repository.languages", "language", "language.name = :language", { language })
+            .leftJoinAndSelect('repository.trending_metrics', 'trending_metrics')
             .getMany();
-        const trendingMetric = await this.trendingMetricRepo.findOneBy({ language });
+        const trendingMetric = await this.trendingMetricRepo.findOne({ where: { language, type: typeTrendingMetrics } });
         if (trendingMetric) {
             allRepositories.forEach(repo => {
                 const isTrending = this.isTrending(trendingMetric, repo, language);
-                this.updateRepository(repo.id, { is_trending: isTrending });
+                if (isTrending) {
+                    this.updateRepository(repo.id, { trendingMetrics: [...(repo.trending_metrics ?? []), { language: trendingMetric.language, type: trendingMetric.type }] });
+                }
             });
         }
     }

@@ -4,14 +4,15 @@ exports.TrendingMetricService = void 0;
 const Repository_1 = require("../models/Repository"); // Assuming Repository is your TypeORM entity
 const db_1 = require("../db");
 const TrendingMetric_1 = require("../models/TrendingMetric");
+const typeorm_1 = require("typeorm");
 class TrendingMetricService {
     repositoryRepo = db_1.AppDataSource.getRepository(Repository_1.Repository);
     trendingMetricRepo = db_1.AppDataSource.getRepository(TrendingMetric_1.TrendingMetric);
     // Calculate the thresholds for stars, forks, and watchers with size-based weight
-    async calculateTrendingMetrics(language) {
-        // Fetch repositories with at least two values in history fields
+    async calculateTrendingMetrics(language, additionalWhereParams) {
         const allRepositories = await this.repositoryRepo
             .createQueryBuilder("repository")
+            .where(additionalWhereParams ?? {})
             .innerJoinAndSelect("repository.languages", "language", "language.name = :language", { language })
             .getMany();
         const filteredRepositories = allRepositories.filter(repo => {
@@ -22,57 +23,52 @@ class TrendingMetricService {
         if (filteredRepositories.length === 0) {
             throw new Error(`No repositories with sufficient history found for language: ${language}`);
         }
-        // Calculate the maximum value of each metric for scaling
-        const maxStars = Math.max(...filteredRepositories.map((repo) => repo.stars_count));
-        const maxForks = Math.max(...filteredRepositories.map((repo) => repo.forks_count));
-        const maxWatchers = Math.max(...filteredRepositories.map((repo) => repo.watchers_count));
-        const calculateWeightedTrendingScore = (repo) => {
-            const sizeWeightStars = (repo.stars_count / maxStars) || 0;
-            const sizeWeightForks = (repo.forks_count / maxForks) || 0;
-            const sizeWeightWatchers = (repo.watchers_count / maxWatchers) || 0;
-            const starsScore = repo.stars_last_week / (1 + sizeWeightStars);
-            const forksScore = repo.forks_last_week / (1 + sizeWeightForks);
-            const watchersScore = repo.watchers_last_week / (1 + sizeWeightWatchers);
+        const maxStars = Math.max(...filteredRepositories.map(repo => repo.stars_count));
+        const maxForks = Math.max(...filteredRepositories.map(repo => repo.forks_count));
+        const maxWatchers = Math.max(...filteredRepositories.map(repo => repo.watchers_count));
+        const calculateTrendingScore = (repo) => {
+            const starBoost = repo.stars_last_week * Math.log(1 + (maxStars / (repo.stars_count || 1)));
+            const forkBoost = repo.forks_last_week * Math.log(1 + (maxForks / (repo.forks_count || 1)));
+            const watcherBoost = repo.watchers_last_week * Math.log(1 + (maxWatchers / (repo.watchers_count || 1)));
             return {
-                stars: starsScore,
-                forks: forksScore,
-                watchers: watchersScore,
-                combined: starsScore + forksScore + watchersScore
+                stars: starBoost,
+                forks: forkBoost,
+                watchers: watcherBoost,
+                combined: starBoost + forkBoost + watcherBoost
             };
         };
-        // Calculate scores for each repository
         const repositoriesWithScores = filteredRepositories.map(repo => ({
             ...repo,
-            weightedTrendingScore: calculateWeightedTrendingScore(repo),
+            trendingScore: calculateTrendingScore(repo)
         }));
         const calculateThresholds = (repositories, key) => {
-            if (repositories.length === 0) {
-                return 0; // Return a default threshold if no data is available
-            }
-            const sortedRepositories = [...repositories].sort((a, b) => b.weightedTrendingScore[key] - a.weightedTrendingScore[key]);
-            const top10Percent = sortedRepositories.slice(0, Math.ceil(sortedRepositories.length * 0.05));
-            return top10Percent.length > 0 ? top10Percent[top10Percent.length - 1].weightedTrendingScore[key] : 0;
+            const sortedRepositories = [...repositories].sort((a, b) => b.trendingScore[key] - a.trendingScore[key]);
+            const top10Percent = sortedRepositories.slice(0, Math.ceil(sortedRepositories.length * 0.10));
+            return top10Percent.length > 0 ? top10Percent[top10Percent.length - 1].trendingScore[key] : 0;
         };
-        const starsThreshold = calculateThresholds(repositoriesWithScores, 'stars');
-        const forksThreshold = calculateThresholds(repositoriesWithScores, 'forks');
-        const watchersThreshold = calculateThresholds(repositoriesWithScores, 'watchers');
-        const combinedThreshold = calculateThresholds(repositoriesWithScores, 'combined');
-        // Return the trendingMetrics
         const trendingMetrics = {
-            stars_threshold: starsThreshold,
-            forks_threshold: forksThreshold,
-            watchers_threshold: watchersThreshold,
-            combined_threshold: combinedThreshold,
+            stars_threshold: calculateThresholds(repositoriesWithScores, 'stars'),
+            forks_threshold: calculateThresholds(repositoriesWithScores, 'forks'),
+            watchers_threshold: calculateThresholds(repositoriesWithScores, 'watchers'),
+            combined_threshold: calculateThresholds(repositoriesWithScores, 'combined'),
             max_stars: maxStars,
             max_forks: maxForks,
-            max_watchers: maxWatchers
+            max_watchers: maxWatchers,
+            type: 'global'
         };
         return trendingMetrics;
+    }
+    async clearTrendingMetricRepos(params) {
+        const allMetrics = await this.trendingMetricRepo.find({ where: params });
+        allMetrics.forEach(async (metric) => {
+            metric.repositories = [];
+            await this.trendingMetricRepo.save(metric);
+        });
     }
     // Create or update trending metric for the language
     async createOrUpdateTrendingMetric(language, calculatedTrendingMetrics) {
         // Try to find if there's an existing entry for the language
-        const existingMetric = await this.trendingMetricRepo.findOne({ where: { language } });
+        const existingMetric = await this.trendingMetricRepo.findOne({ where: { language, type: calculatedTrendingMetrics.type } });
         if (existingMetric) {
             // If the metric already exists, update it
             existingMetric.stars_threshold = calculatedTrendingMetrics.stars_threshold;
@@ -82,6 +78,7 @@ class TrendingMetricService {
             existingMetric.max_stars = calculatedTrendingMetrics.max_stars;
             existingMetric.max_forks = calculatedTrendingMetrics.max_forks;
             existingMetric.max_watchers = calculatedTrendingMetrics.max_watchers;
+            existingMetric.type = calculatedTrendingMetrics.type;
             // Save the updated metric
             await this.trendingMetricRepo.save(existingMetric);
         }
@@ -96,9 +93,19 @@ class TrendingMetricService {
             newTrendingMetric.max_stars = calculatedTrendingMetrics.max_stars;
             newTrendingMetric.max_forks = calculatedTrendingMetrics.max_forks;
             newTrendingMetric.max_watchers = calculatedTrendingMetrics.max_watchers;
+            newTrendingMetric.type = calculatedTrendingMetrics.type;
             // Save the new metric
             await this.trendingMetricRepo.save(newTrendingMetric);
         }
+    }
+    generateFiltersRepoFromTrendingMetricType(type) {
+        const result = {};
+        if (type === 'last_6_months') {
+            var d = new Date();
+            d.setMonth(d.getMonth() - 6);
+            result.creation_date = (0, typeorm_1.MoreThanOrEqual)(d);
+        }
+        return result;
     }
 }
 exports.TrendingMetricService = TrendingMetricService;

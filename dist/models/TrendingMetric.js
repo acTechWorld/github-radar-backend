@@ -11,9 +11,11 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TrendingMetric = void 0;
 const typeorm_1 = require("typeorm");
+const Repository_1 = require("./Repository");
 let TrendingMetric = class TrendingMetric {
     id;
     language; // e.g., "JavaScript", "Python"
+    type;
     stars_threshold; // Minimum stars growth score in a week to be trending
     forks_threshold; // Minimum forks growth score in a week to be trending
     watchers_threshold; // Minimum watchers growth score in a week to be trending
@@ -23,6 +25,7 @@ let TrendingMetric = class TrendingMetric {
     max_watchers; // Minimum watchers growth score in a week to be trending
     created_at;
     updated_at;
+    repositories;
 };
 exports.TrendingMetric = TrendingMetric;
 __decorate([
@@ -30,9 +33,13 @@ __decorate([
     __metadata("design:type", Number)
 ], TrendingMetric.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: 'varchar', length: 100, unique: true }),
+    (0, typeorm_1.Column)({ type: 'varchar', length: 100 }),
     __metadata("design:type", String)
 ], TrendingMetric.prototype, "language", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'varchar', length: 100 }),
+    __metadata("design:type", String)
+], TrendingMetric.prototype, "type", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'float', default: 0.5 }),
     __metadata("design:type", Number)
@@ -69,6 +76,10 @@ __decorate([
     (0, typeorm_1.UpdateDateColumn)({ type: 'timestamp' }),
     __metadata("design:type", Date)
 ], TrendingMetric.prototype, "updated_at", void 0);
+__decorate([
+    (0, typeorm_1.ManyToMany)(() => Repository_1.Repository, (repository) => repository.trending_metrics),
+    __metadata("design:type", Array)
+], TrendingMetric.prototype, "repositories", void 0);
 exports.TrendingMetric = TrendingMetric = __decorate([
     (0, typeorm_1.Entity)('trending_metrics')
 ], TrendingMetric);
