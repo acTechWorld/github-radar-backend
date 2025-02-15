@@ -361,31 +361,28 @@ export class RepositoryService {
   }
 
   private isTrending(trendingMetric: TrendingMetric, repo: Repository, language: string): boolean {
-  
-    // Maximum values for size normalization (you may fetch these from your trending metric or calculate dynamically)
-    const maxStars = trendingMetric.max_stars ?? 1; // Avoid division by 0
+    // Maximum values for normalization
+    const maxStars = trendingMetric.max_stars ?? 1; 
     const maxForks = trendingMetric.max_forks ?? 1;
     const maxWatchers = trendingMetric.max_watchers ?? 1;
   
-    // Calculate the weighted scores
-    const sizeWeightStars = (repo.stars_count / maxStars) || 0;
-    const sizeWeightForks = (repo.forks_count / maxForks) || 0;
-    const sizeWeightWatchers = (repo.watchers_count / maxWatchers) || 0;
+    // Use your log-based trending score calculation for stars, forks, and watchers
+    const starBoost = (repo.stars_last_week ?? 0) * Math.log(1 + (maxStars / (repo.stars_count || 1)));
+    const forkBoost = (repo.forks_last_week ?? 0) * Math.log(1 + (maxForks / (repo.forks_count || 1)));
+    const watcherBoost = (repo.watchers_last_week ?? 0) * Math.log(1 + (maxWatchers / (repo.watchers_count || 1)));
   
-    const starsScore = (repo.stars_last_week ?? 0) / (1 + sizeWeightStars);
-    const forksScore = (repo.forks_last_week ?? 0) / (1 + sizeWeightForks);
-    const watchersScore = (repo.watchers_last_week ?? 0) / (1 + sizeWeightWatchers);
+    // Combined trending score
+    const combinedScore = starBoost + forkBoost + watcherBoost;
   
-    const combinedScore = starsScore + forksScore + watchersScore;
+    // Check if the repository exceeds the defined thresholds
+    const isTrendingByStars = starBoost >= (trendingMetric.stars_threshold ?? 0);
+    const isTrendingByForks = forkBoost >= (trendingMetric.forks_threshold ?? 0);
+    const isTrendingByWatchers = watcherBoost >= (trendingMetric.watchers_threshold ?? 0);
+    const isTrendingByCombinedScore = combinedScore >= (trendingMetric.combined_threshold ?? 0);
   
-    // Check against the thresholds for each metric
-    const isTrendingByStars = starsScore >= trendingMetric.stars_threshold;
-    const isTrendingByForks = forksScore >= trendingMetric.forks_threshold;
-    const isTrendingByWatchers = watchersScore >= trendingMetric.watchers_threshold;
-    const isTrendingByCombinedScore = combinedScore >= trendingMetric.combined_threshold;
-  
-    // Determine if the repository is trending
+    // Return true if any threshold is met
     return isTrendingByStars || isTrendingByForks || isTrendingByWatchers || isTrendingByCombinedScore;
   }
+  
   
 }
