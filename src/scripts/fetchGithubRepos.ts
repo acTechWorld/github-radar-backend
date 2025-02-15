@@ -1,5 +1,5 @@
 import { GithubService } from "../services/githubService"
-import { GithubApiRepo, TypeTrendingMetrics } from "../types/types"
+import { GithubApiRepo, LanguageName, TypeTrendingMetrics } from "../types/types"
 import { RepositoryService } from "../services/repositoryService"
 import { TrendingMetricService } from "../services/trendingMetricService"
 import logger from "../utils/logger"
@@ -20,7 +20,7 @@ const waitXms = async (Xms: number) => {
   return new Promise(res => setTimeout(res, Xms))
 }
 
-const fetchGithubRepos =  async (language: 'Vue' | 'React') => {
+const fetchGithubRepos =  async (language: LanguageName) => {
   logger.log("INFO", `init fetching ${language} projects`);
 
   const query = queryMapper[language]
@@ -94,7 +94,7 @@ const fetchGithubRepos =  async (language: 'Vue' | 'React') => {
       for(const trendingMetricsType of trendingMetricsTypes) {
         const calculatedTrendingMetrics = await trendingMetricService.calculateTrendingMetrics(language, trendingMetricService.generateFiltersRepoFromTrendingMetricType(trendingMetricsType))
         await trendingMetricService.createOrUpdateTrendingMetric(language, {...calculatedTrendingMetrics, type : trendingMetricsType})
-        await repositoryService.updateIsTrendingReposFromLanguage(language, trendingMetricsType, trendingMetricService.generateFiltersRepoFromTrendingMetricType(trendingMetricsType))
+        await repositoryService.updateIsTrendingReposFromTrendingLanguageType(language, trendingMetricsType, trendingMetricService.generateFiltersRepoFromTrendingMetricType(trendingMetricsType))
       }
     } catch (error: any) {
       logger.log("ERROR", `Error initializing repository fetch: ${error.message}`);

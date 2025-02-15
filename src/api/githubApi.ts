@@ -28,6 +28,30 @@ const fetchRepositoriesBySearch = async (qSearch: string, page = 1, perPage = 30
     }; // Return array of repositories
 }
 
+const getReadme = async (owner: string, repo_name: string) => {
+  if (!GITHUB_TOKEN) {
+    throw new Error('GitHub API token is not defined.');
+  }
+
+  const url = `${GITHUB_API_URL}/repos/${owner}/${repo_name}/contents/README.md`;
+
+  const response = await axios.get(url, {
+    headers: {
+      Authorization: `Bearer ${GITHUB_TOKEN}`,
+      Accept: 'application/vnd.github.v3+json',
+    },
+  });
+
+  // Decode base64 content from GitHub API
+  const readmeContent = Buffer.from(response.data.content, 'base64').toString('utf-8');
+  return {
+    name: response.data.name,
+    path: response.data.path,
+    download_url: response.data.download_url,
+    content: readmeContent,
+  };
+};
 
 
-export { fetchRepositoriesBySearch};
+
+export { fetchRepositoriesBySearch, getReadme};

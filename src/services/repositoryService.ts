@@ -342,7 +342,7 @@ export class RepositoryService {
     return result.affected !== 0;
   }
 
-  async updateIsTrendingReposFromLanguage(language: string, typeTrendingMetrics: TypeTrendingMetrics, additionalWhereParams?: any) {
+  async updateIsTrendingReposFromTrendingLanguageType(language: string, typeTrendingMetrics: TypeTrendingMetrics, additionalWhereParams?: any) {
     const allRepositories = await this.repositoryRepo
       .createQueryBuilder("repository")
       .where(additionalWhereParams ?? {})

@@ -1,13 +1,33 @@
 import { Repository } from "../models/Repository";  // Assuming Repository is your TypeORM entity
 import { AppDataSource } from '../db';
 import { TrendingMetric } from '../models/TrendingMetric';
-import { CalculatedTrendingMetrics, TypeTrendingMetrics } from "../types/types";
-import { MoreThanOrEqual } from "typeorm";
+import { CalculatedTrendingMetrics, TrendingMetricQuery, TypeTrendingMetrics } from "../types/types";
+import { Any, ArrayContains, ArrayOverlap, MoreThanOrEqual } from "typeorm";
 
 export class TrendingMetricService {
   private repositoryRepo = AppDataSource.getRepository(Repository);
   private trendingMetricRepo = AppDataSource.getRepository(TrendingMetric);
 
+  async getAllTrendingMetrics(queries: TrendingMetricQuery) {
+    const where: any = {};
+    if (queries.languages) {
+      const languagesArray = queries.languages.split(',').map((language) => language.trim())
+      where.language = Any(languagesArray);
+    }
+
+    if (queries.trendingTypes) {
+      const trendingTypesArray = queries.trendingTypes.split(',').map((trendingType) => trendingType.trim())
+      where.type = Any(trendingTypesArray);
+    }
+    const queryBuilder = this.trendingMetricRepo.createQueryBuilder('trending_metric').where(where);
+
+    const [items, totalCount] = await queryBuilder
+    .getManyAndCount();
+    return {
+      totalCount,
+      items,
+    };
+  }
 
   // Calculate the thresholds for stars, forks, and watchers with size-based weight
   async calculateTrendingMetrics(language: string, additionalWhereParams?: any): Promise<CalculatedTrendingMetrics> {

@@ -1,4 +1,5 @@
-import {fetchRepositoriesBySearch} from '../api/githubApi'
+import { Repository } from 'typeorm';
+import {fetchRepositoriesBySearch, getReadme} from '../api/githubApi'
 import { GithubApiRepo, GithubRepoQuery } from '../types/types';
 
 // Intermediate service method to fetch repositories
@@ -33,5 +34,18 @@ export class GithubService {
               }
             })
         }
-    }      
+    }
+
+    async getReadmeFromRepo(owner: string, repo_name: string) {
+      try {
+        const {content} =  await getReadme(owner, repo_name)
+        return content
+      } catch (error: any) {
+        if (error.response && error.response.status === 404) {
+          return null;
+        }
+        throw new Error(`Error fetching README: ${error.response?.data?.message || error.message}`);
+    
+      }
+    }
 }

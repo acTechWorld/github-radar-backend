@@ -133,6 +133,9 @@ export class Repository {
   @Column({ type: 'varchar', length: 50, nullable: true })
   owner_type!: string; // 'Organization' or 'Individual'
 
+  @Column({type: "text", nullable: true})
+  readme_content?: string | null;
+
   @ManyToMany(() => TrendingMetric, (trending_metric) => trending_metric.repositories, { cascade: true })
   @JoinTable({
     name: 'repository_trending_metrics',

@@ -28,6 +28,11 @@ export interface RepositoryQuery {
     trendingTypes?: string
     trendingTypesOperation? : Operation
   }
+
+export interface TrendingMetricQuery {
+  languages?: string;
+  trendingTypes?: string
+}
 export interface RepositoryBody {
     github_id: number;
     name: string;
@@ -73,6 +78,7 @@ export interface RepositoryBody {
     creation_date?: Date;
     last_updated?: Date;
     last_pushed?: Date;
+    readme_content?: string | null
   }
 
   export interface GithubRepoQuery {
@@ -103,6 +109,8 @@ export interface RepositoryBody {
   }
 
   export type TypeTrendingMetrics = 'global' | 'last_6_months'
+
+  export type LanguageName = 'Vue' | 'React'
 
   export interface CalculatedTrendingMetrics {
     stars_threshold: number;
