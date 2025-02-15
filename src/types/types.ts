@@ -27,6 +27,7 @@ export interface RepositoryQuery {
     limit: string;
     trendingTypes?: string
     trendingTypesOperation? : Operation
+    hasReadMe?: 'true' | 'false'
   }
 
 export interface TrendingMetricQuery {

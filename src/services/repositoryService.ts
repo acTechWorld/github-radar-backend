@@ -1,7 +1,7 @@
 // src/services/repository.service.ts
 import { Repository } from '../models/Repository';
 import { AppDataSource } from '../db';
-import { Any, ArrayContains, Between, In, LessThanOrEqual, MoreThanOrEqual, ArrayOverlap } from 'typeorm';
+import { Any, ArrayContains, Between, In, LessThanOrEqual, MoreThanOrEqual, ArrayOverlap, IsNull, Not } from 'typeorm';
 import { RepositoryBody, RepositoryQuery, RepositoryUpdateBody, TypeTrendingMetrics } from '../types/types';
 import { Language } from '../models/Language';
 import { TrendingMetric } from '../models/TrendingMetric';
@@ -134,6 +134,14 @@ export class RepositoryService {
         where.updated_at = MoreThanOrEqual(min);
       } else if (max) {
         where.updated_at = LessThanOrEqual(max);
+      }
+    }
+
+    if(queries.hasReadMe !== undefined){
+      if(queries.hasReadMe === 'true') {
+        where.readme_content = Not(IsNull())
+      } else if(queries.hasReadMe === 'false') {
+        where.readme_content = IsNull()
       }
     }
     
