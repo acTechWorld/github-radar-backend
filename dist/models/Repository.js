@@ -76,6 +76,9 @@ let Repository = class Repository {
     //Technical Date
     updated_at;
     owner_type; // 'Organization' or 'Individual'
+    readme_content;
+    //Technical Date
+    last_update_readme;
     trending_metrics;
 };
 exports.Repository = Repository;
@@ -211,6 +214,14 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'varchar', length: 50, nullable: true }),
     __metadata("design:type", String)
 ], Repository.prototype, "owner_type", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "text", nullable: true }),
+    __metadata("design:type", Object)
+], Repository.prototype, "readme_content", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', default: () => 'NOW()' }),
+    __metadata("design:type", Date)
+], Repository.prototype, "last_update_readme", void 0);
 __decorate([
     (0, typeorm_1.ManyToMany)(() => TrendingMetric_1.TrendingMetric, (trending_metric) => trending_metric.repositories, { cascade: true }),
     (0, typeorm_1.JoinTable)({

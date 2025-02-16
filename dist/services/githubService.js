@@ -1,7 +1,11 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GithubService = void 0;
 const githubApi_1 = require("../api/githubApi");
+const logger_1 = __importDefault(require("../utils/logger"));
 // Intermediate service method to fetch repositories
 class GithubService {
     async getAllRepositories(queries) {
@@ -31,6 +35,26 @@ class GithubService {
                 };
             })
         };
+    }
+    async getReadmeFromRepo(owner, repo_name, readmeFileName = 'README.md') {
+        try {
+            const { content } = await (0, githubApi_1.getReadme)(owner, repo_name, readmeFileName);
+            return content;
+        }
+        catch (error) {
+            if (error.response && error.response.status === 404) {
+                if (readmeFileName === 'README.md') {
+                    return await this.getReadmeFromRepo(owner, repo_name, 'readme.md');
+                }
+                else {
+                    logger_1.default.log("ERROR", `No Readme content found for repo ${owner}/${repo_name}`);
+                }
+            }
+            else {
+                logger_1.default.log("ERROR", `Error fetching README: ${error.response?.data?.message || error.message}`);
+            }
+            return null;
+        }
     }
 }
 exports.GithubService = GithubService;

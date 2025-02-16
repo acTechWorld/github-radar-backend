@@ -139,6 +139,14 @@ class RepositoryService {
                 where.updated_at = (0, typeorm_1.LessThanOrEqual)(max);
             }
         }
+        if (queries.hasReadMe !== undefined) {
+            if (queries.hasReadMe === 'true') {
+                where.readme_content = (0, typeorm_1.Not)((0, typeorm_1.IsNull)());
+            }
+            else if (queries.hasReadMe === 'false') {
+                where.readme_content = (0, typeorm_1.IsNull)();
+            }
+        }
         if (queries.licenses) {
             const licensesArray = queries.licenses.split(',').map((license) => license.trim()); // Trim to handle spaces
             where.license = (0, typeorm_1.Any)(licensesArray);
@@ -308,7 +316,7 @@ class RepositoryService {
         const result = await this.repositoryRepo.delete(id);
         return result.affected !== 0;
     }
-    async updateIsTrendingReposFromLanguage(language, typeTrendingMetrics, additionalWhereParams) {
+    async updateIsTrendingReposFromTrendingLanguageType(language, typeTrendingMetrics, additionalWhereParams) {
         const allRepositories = await this.repositoryRepo
             .createQueryBuilder("repository")
             .where(additionalWhereParams ?? {})
@@ -326,24 +334,22 @@ class RepositoryService {
         }
     }
     isTrending(trendingMetric, repo, language) {
-        // Maximum values for size normalization (you may fetch these from your trending metric or calculate dynamically)
-        const maxStars = trendingMetric.max_stars ?? 1; // Avoid division by 0
+        // Maximum values for normalization
+        const maxStars = trendingMetric.max_stars ?? 1;
         const maxForks = trendingMetric.max_forks ?? 1;
         const maxWatchers = trendingMetric.max_watchers ?? 1;
-        // Calculate the weighted scores
-        const sizeWeightStars = (repo.stars_count / maxStars) || 0;
-        const sizeWeightForks = (repo.forks_count / maxForks) || 0;
-        const sizeWeightWatchers = (repo.watchers_count / maxWatchers) || 0;
-        const starsScore = (repo.stars_last_week ?? 0) / (1 + sizeWeightStars);
-        const forksScore = (repo.forks_last_week ?? 0) / (1 + sizeWeightForks);
-        const watchersScore = (repo.watchers_last_week ?? 0) / (1 + sizeWeightWatchers);
-        const combinedScore = starsScore + forksScore + watchersScore;
-        // Check against the thresholds for each metric
-        const isTrendingByStars = starsScore >= trendingMetric.stars_threshold;
-        const isTrendingByForks = forksScore >= trendingMetric.forks_threshold;
-        const isTrendingByWatchers = watchersScore >= trendingMetric.watchers_threshold;
-        const isTrendingByCombinedScore = combinedScore >= trendingMetric.combined_threshold;
-        // Determine if the repository is trending
+        // Use your log-based trending score calculation for stars, forks, and watchers
+        const starBoost = (repo.stars_last_week ?? 0) * Math.log(1 + (maxStars / (repo.stars_count || 1)));
+        const forkBoost = (repo.forks_last_week ?? 0) * Math.log(1 + (maxForks / (repo.forks_count || 1)));
+        const watcherBoost = (repo.watchers_last_week ?? 0) * Math.log(1 + (maxWatchers / (repo.watchers_count || 1)));
+        // Combined trending score
+        const combinedScore = starBoost + forkBoost + watcherBoost;
+        // Check if the repository exceeds the defined thresholds
+        const isTrendingByStars = starBoost >= (trendingMetric.stars_threshold ?? 0);
+        const isTrendingByForks = forkBoost >= (trendingMetric.forks_threshold ?? 0);
+        const isTrendingByWatchers = watcherBoost >= (trendingMetric.watchers_threshold ?? 0);
+        const isTrendingByCombinedScore = combinedScore >= (trendingMetric.combined_threshold ?? 0);
+        // Return true if any threshold is met
         return isTrendingByStars || isTrendingByForks || isTrendingByWatchers || isTrendingByCombinedScore;
     }
 }

@@ -8,6 +8,24 @@ const typeorm_1 = require("typeorm");
 class TrendingMetricService {
     repositoryRepo = db_1.AppDataSource.getRepository(Repository_1.Repository);
     trendingMetricRepo = db_1.AppDataSource.getRepository(TrendingMetric_1.TrendingMetric);
+    async getAllTrendingMetrics(queries) {
+        const where = {};
+        if (queries.languages) {
+            const languagesArray = queries.languages.split(',').map((language) => language.trim());
+            where.language = (0, typeorm_1.Any)(languagesArray);
+        }
+        if (queries.trendingTypes) {
+            const trendingTypesArray = queries.trendingTypes.split(',').map((trendingType) => trendingType.trim());
+            where.type = (0, typeorm_1.Any)(trendingTypesArray);
+        }
+        const queryBuilder = this.trendingMetricRepo.createQueryBuilder('trending_metric').where(where);
+        const [items, totalCount] = await queryBuilder
+            .getManyAndCount();
+        return {
+            totalCount,
+            items,
+        };
+    }
     // Calculate the thresholds for stars, forks, and watchers with size-based weight
     async calculateTrendingMetrics(language, additionalWhereParams) {
         const allRepositories = await this.repositoryRepo
