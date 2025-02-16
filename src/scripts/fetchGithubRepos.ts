@@ -84,17 +84,18 @@ const fetchGithubRepos =  async (language: LanguageName) => {
       }
       logger.log("INFO", "Finished fetching all repositories.");
       
-      //Calculate trending metric and update trending metrics repo relation
-      logger.log("INFO", `Calculate trending metric for ${language}`);
-
       //Clear existing trendingMetric repos
       trendingMetricService.clearTrendingMetricRepos({language: language})
 
       const trendingMetricsTypes: TypeTrendingMetrics[] = ['global', 'last_6_months']
       for(const trendingMetricsType of trendingMetricsTypes) {
+        logger.log("INFO", `Calculate trending metric for ${language} and metric type ${trendingMetricsType}`);
         const calculatedTrendingMetrics = await trendingMetricService.calculateTrendingMetrics(language, trendingMetricService.generateFiltersRepoFromTrendingMetricType(trendingMetricsType))
         await trendingMetricService.createOrUpdateTrendingMetric(language, {...calculatedTrendingMetrics, type : trendingMetricsType})
+        logger.log("INFO", `Update isTrending for repos of ${language} and metric type ${trendingMetricsType}`);
         await repositoryService.updateIsTrendingReposFromTrendingLanguageType(language, trendingMetricsType, trendingMetricService.generateFiltersRepoFromTrendingMetricType(trendingMetricsType))
+        logger.log("INFO", `Get Readme files for repos of ${language} and metric type ${trendingMetricsType}`);
+        await getReadmeTrendingRepos(language, trendingMetricsType)
       }
     } catch (error: any) {
       logger.log("ERROR", `Error initializing repository fetch: ${error.message}`);
@@ -153,6 +154,17 @@ const saveGithubRepoInDb = async (repo: GithubApiRepo, basedLanguage: string) =>
       })
   }
     
+}
+
+const getReadmeTrendingRepos = async (language: LanguageName, typeTrendingMetrics: TypeTrendingMetrics) => {
+    const {totalCount} = await repositoryService.getAllRepositories({ languages: language, languagesOperation: 'OR', trendingTypes: typeTrendingMetrics, trendingTypesOperation: 'OR', page: '1', limit: '20'})
+    const {items: allRepositories} = await repositoryService.getAllRepositories({ languages: language, languagesOperation: 'OR', trendingTypes: typeTrendingMetrics, trendingTypesOperation: 'OR', page: '1', limit: totalCount.toString()})
+    allRepositories.forEach(async repo => {
+        if(!repo.readme_content || repo.last_update_readme < repo.last_updated) {
+            const readme_content = await githubService.getReadmeFromRepo(repo.owner_name, repo.name)
+            repositoryService.updateRepository(repo.id, {readme_content, last_update_readme: new Date()})
+        }
+    })
 }
 
 export {fetchGithubRepos}

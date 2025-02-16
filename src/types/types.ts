@@ -80,6 +80,7 @@ export interface RepositoryBody {
     last_updated?: Date;
     last_pushed?: Date;
     readme_content?: string | null
+    last_update_readme?: Date;
   }
 
   export interface GithubRepoQuery {

@@ -136,6 +136,10 @@ export class Repository {
   @Column({type: "text", nullable: true})
   readme_content?: string | null;
 
+  //Technical Date
+  @Column({ type: 'timestamp', default: () => 'NOW()' })
+  last_update_readme!: Date;
+
   @ManyToMany(() => TrendingMetric, (trending_metric) => trending_metric.repositories, { cascade: true })
   @JoinTable({
     name: 'repository_trending_metrics',

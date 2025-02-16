@@ -1,6 +1,6 @@
-import { Repository } from 'typeorm';
 import {fetchRepositoriesBySearch, getReadme} from '../api/githubApi'
 import { GithubApiRepo, GithubRepoQuery } from '../types/types';
+import logger from '../utils/logger';
 
 // Intermediate service method to fetch repositories
 
@@ -36,16 +36,21 @@ export class GithubService {
         }
     }
 
-    async getReadmeFromRepo(owner: string, repo_name: string) {
+    async getReadmeFromRepo(owner: string, repo_name: string, readmeFileName: string = 'README.md'): Promise<string | null> {
       try {
-        const {content} =  await getReadme(owner, repo_name)
+        const {content} =  await getReadme(owner, repo_name, readmeFileName)
         return content
       } catch (error: any) {
         if (error.response && error.response.status === 404) {
-          return null;
+          if(readmeFileName === 'README.md') {
+            return await this.getReadmeFromRepo(owner, repo_name, 'readme.md')
+          } else {
+            logger.log("ERROR", `No Readme content found for repo ${owner}/${repo_name}`)
+          }
+        } else {
+          logger.log("ERROR", `Error fetching README: ${error.response?.data?.message || error.message}`)
         }
-        throw new Error(`Error fetching README: ${error.response?.data?.message || error.message}`);
-    
+        return null;
       }
     }
 }
