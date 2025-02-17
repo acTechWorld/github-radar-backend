@@ -35,7 +35,7 @@ export class GithubService {
             })
         }
     }
-
+    //Get Readme from repo infos
     async getReadmeFromRepo(owner: string, repo_name: string, readmeFileName: string = 'README.md'): Promise<string | null> {
       try {
         const {content} =  await getReadme(owner, repo_name, readmeFileName)
