@@ -159,7 +159,7 @@ const saveGithubRepoInDb = async (repo: GithubApiRepo, basedLanguage: string) =>
 const getReadmeTrendingRepos = async (language: LanguageName, typeTrendingMetrics: TypeTrendingMetrics) => {
     const {totalCount} = await repositoryService.getAllRepositories({ languages: language, languagesOperation: 'OR', trendingTypes: typeTrendingMetrics, trendingTypesOperation: 'OR', page: '1', limit: '20'})
     const {items: allRepositories} = await repositoryService.getAllRepositories({ languages: language, languagesOperation: 'OR', trendingTypes: typeTrendingMetrics, trendingTypesOperation: 'OR', page: '1', limit: totalCount.toString()})
-    allRepositories.forEach(async repo => {
+    for(const repo of allRepositories){
       logger.log("DEBUG", `Search read me for ${repo.name}`)
       if(!repo.readme_content || repo.last_update_readme < repo.last_updated) {
             logger.log("DEBUG", `Search read me for ${repo.name}`)
@@ -167,7 +167,7 @@ const getReadmeTrendingRepos = async (language: LanguageName, typeTrendingMetric
             logger.log("DEBUG", `Found read me for ${repo.name}: ${readme_content !== null}`)
             repositoryService.updateRepository(repo.id, {readme_content, last_update_readme: new Date()})
         }
-    })
+    }
 }
 
 export {fetchGithubRepos}

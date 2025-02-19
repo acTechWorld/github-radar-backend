@@ -149,7 +149,7 @@ const saveGithubRepoInDb = async (repo, basedLanguage) => {
 const getReadmeTrendingRepos = async (language, typeTrendingMetrics) => {
     const { totalCount } = await repositoryService.getAllRepositories({ languages: language, languagesOperation: 'OR', trendingTypes: typeTrendingMetrics, trendingTypesOperation: 'OR', page: '1', limit: '20' });
     const { items: allRepositories } = await repositoryService.getAllRepositories({ languages: language, languagesOperation: 'OR', trendingTypes: typeTrendingMetrics, trendingTypesOperation: 'OR', page: '1', limit: totalCount.toString() });
-    allRepositories.forEach(async (repo) => {
+    for (const repo of allRepositories) {
         logger_1.default.log("DEBUG", `Search read me for ${repo.name}`);
         if (!repo.readme_content || repo.last_update_readme < repo.last_updated) {
             logger_1.default.log("DEBUG", `Search read me for ${repo.name}`);
@@ -157,5 +157,5 @@ const getReadmeTrendingRepos = async (language, typeTrendingMetrics) => {
             logger_1.default.log("DEBUG", `Found read me for ${repo.name}: ${readme_content !== null}`);
             repositoryService.updateRepository(repo.id, { readme_content, last_update_readme: new Date() });
         }
-    });
+    }
 };
