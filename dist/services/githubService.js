@@ -36,6 +36,7 @@ class GithubService {
             })
         };
     }
+    //Get Readme from repo infos
     async getReadmeFromRepo(owner, repo_name, readmeFileName = 'README.md') {
         try {
             const { content } = await (0, githubApi_1.getReadme)(owner, repo_name, readmeFileName);
