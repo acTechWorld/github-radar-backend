@@ -5,6 +5,7 @@ import { AppDataSource } from './db';
 import repositoryRoutes from './routes/repositoryRoutes';
 import languageRoutes from './routes/languageRoutes';
 import githubRoutes from './routes/githubRoutes';
+import aiContentRoutes from './routes/AIContentRoutes';
 import logger from './utils/logger';
 const app: Application = express();
 app.use(cors());
@@ -23,5 +24,6 @@ AppDataSource.initialize()
 app.use('/api/repositories', repositoryRoutes);
 app.use('/api/languages', languageRoutes);
 app.use('/api/github', githubRoutes);
+app.use('/api/aiContents', aiContentRoutes);
 
 export default app;
