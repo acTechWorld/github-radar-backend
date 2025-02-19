@@ -39,49 +39,49 @@ const fetchGithubRepos =  async (language: LanguageName) => {
   
       logger.log("INFO", `${totalProjects} ${language} projects to fetch`);
       // Check if we need to fetch more repositories
-      // while (totalFetched < totalProjects) {
-      //   try {
-      //     let startFetchBatch, fetchBatchDuration;
-      //     if (process.env.DEBUG) startFetchBatch = Date.now();
-      //     // Fetch the next batch of repositories using the creation_date filter (last fetched repository date)
-      //     const repos = await githubService.getAllRepositories({
-      //       qSearch: lastPushed ? `${query} pushed:<=${lastPushed}` : query,
-      //       perPage: 100,
-      //       sort: 'updated', // Filter based on the last creation date
-      //     });
+      while (totalFetched < totalProjects) {
+        try {
+          let startFetchBatch, fetchBatchDuration;
+          if (process.env.DEBUG) startFetchBatch = Date.now();
+          // Fetch the next batch of repositories using the creation_date filter (last fetched repository date)
+          const repos = await githubService.getAllRepositories({
+            qSearch: lastPushed ? `${query} pushed:<=${lastPushed}` : query,
+            perPage: 100,
+            sort: 'updated', // Filter based on the last creation date
+          });
 
-      //     if (process.env.DEBUG && startFetchBatch) {
-      //       fetchBatchDuration = Date.now() - startFetchBatch;
-      //       logger.log("DEBUG", `Fetched ${repos.items.length} repositories (API call took ${fetchBatchDuration}ms)`);
-      //     }
-      //     // Process each fetched repository (e.g., save to DB)
-      //     repos.items.forEach((repo) => saveGithubRepoInDb(repo, language));
-      //     totalFetched += repos.items.length; // Increment the count based on fetched items
+          if (process.env.DEBUG && startFetchBatch) {
+            fetchBatchDuration = Date.now() - startFetchBatch;
+            logger.log("DEBUG", `Fetched ${repos.items.length} repositories (API call took ${fetchBatchDuration}ms)`);
+          }
+          // Process each fetched repository (e.g., save to DB)
+          repos.items.forEach((repo) => saveGithubRepoInDb(repo, language));
+          totalFetched += repos.items.length; // Increment the count based on fetched items
   
-      //     logger.log("INFO", `Fetched: ${totalFetched} repositories`);
-      //     // Update the `lastCreationDate` with the most recent repository's `created_at`
-      //     if (repos.items.length > 0) {
-      //       lastPushed = repos.items.sort((a,b) => (new Date(b.last_pushed) as any) - (new Date(a.last_pushed) as any))?.[repos.items.length - 1].last_pushed;
-      //     }
-      //     retryNumber = 0
-      //     await waitXms(10 * 1000)
+          logger.log("INFO", `Fetched: ${totalFetched} repositories`);
+          // Update the `lastCreationDate` with the most recent repository's `created_at`
+          if (repos.items.length > 0) {
+            lastPushed = repos.items.sort((a,b) => (new Date(b.last_pushed) as any) - (new Date(a.last_pushed) as any))?.[repos.items.length - 1].last_pushed;
+          }
+          retryNumber = 0
+          await waitXms(10 * 1000)
   
-      //   } catch (error: any) {
-      //     if(error.status === 403) {
-      //       if(retryNumber < 10) {
-      //         retryNumber += 1
-      //         logger.log("ERROR", `Error fetching repos, (403) wait 5mins and retry (retry number ${retryNumber}): ${error.message}`);
-      //         await waitXms(5 * 60 * 1000)
-      //       } else {
-      //         logger.log("ERROR",`Error fetching repos, (403) max number of retry attempted => finsh job: ${error.message}`);
-      //         break;
-      //       }
-      //     } else {
-      //       logger.log("ERROR", `Error fetching repos (not 403): ${error.message}`);
-      //       break
-      //     }
-      //   }
-      // }
+        } catch (error: any) {
+          if(error.status === 403) {
+            if(retryNumber < 10) {
+              retryNumber += 1
+              logger.log("ERROR", `Error fetching repos, (403) wait 5mins and retry (retry number ${retryNumber}): ${error.message}`);
+              await waitXms(5 * 60 * 1000)
+            } else {
+              logger.log("ERROR",`Error fetching repos, (403) max number of retry attempted => finsh job: ${error.message}`);
+              break;
+            }
+          } else {
+            logger.log("ERROR", `Error fetching repos (not 403): ${error.message}`);
+            break
+          }
+        }
+      }
       logger.log("INFO", "Finished fetching all repositories.");
       
       //Clear existing trendingMetric repos
