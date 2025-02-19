@@ -325,12 +325,12 @@ class RepositoryService {
             .getMany();
         const trendingMetric = await this.trendingMetricRepo.findOne({ where: { language, type: typeTrendingMetrics } });
         if (trendingMetric) {
-            allRepositories.forEach(repo => {
+            for (const repo of allRepositories) {
                 const isTrending = this.isTrending(trendingMetric, repo, language);
                 if (isTrending) {
-                    this.updateRepository(repo.id, { trendingMetrics: [...(repo.trending_metrics ?? []), { language: trendingMetric.language, type: trendingMetric.type }] });
+                    await this.updateRepository(repo.id, { trendingMetrics: [...(repo.trending_metrics ?? []), { language: trendingMetric.language, type: trendingMetric.type }] });
                 }
-            });
+            }
         }
     }
     isTrending(trendingMetric, repo, language) {

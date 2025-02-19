@@ -160,7 +160,6 @@ const getReadmeTrendingRepos = async (language: LanguageName, typeTrendingMetric
     const {totalCount} = await repositoryService.getAllRepositories({ languages: language, languagesOperation: 'OR', trendingTypes: typeTrendingMetrics, trendingTypesOperation: 'OR', page: '1', limit: '20'})
     const {items: allRepositories} = await repositoryService.getAllRepositories({ languages: language, languagesOperation: 'OR', trendingTypes: typeTrendingMetrics, trendingTypesOperation: 'OR', page: '1', limit: totalCount.toString()})
     for(const repo of allRepositories){
-      logger.log("DEBUG", `Search read me for ${repo.name}`)
       if(!repo.readme_content || repo.last_update_readme < repo.last_updated) {
             logger.log("DEBUG", `Search read me for ${repo.name}`)
             const readme_content = await githubService.getReadmeFromRepo(repo.owner_name, repo.name)
