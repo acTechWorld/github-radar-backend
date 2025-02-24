@@ -34,6 +34,20 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// GET /ai-content/name/:name - Get AIContent by NAME
+router.get('/name/:name', async (req, res) => {
+  try {
+    const content = await aiContentService.getAIContentByName(req.params.name);
+    if (!content) {
+      res.status(404).json({ error: 'AI content not found.' });
+      return;
+    }
+    res.json(content);
+  } catch (error: any) {
+    res.status(500).json({ message: 'Error fetching AI content', error: error.message ?? error });
+  }
+});
+
 // POST /ai-content - Create a new AIContent
 router.post('/', async (req, res) => {
   try {

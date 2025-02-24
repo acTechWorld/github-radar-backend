@@ -12,6 +12,10 @@ export class AIContentService {
     return await this.aiContentRepository.findOneBy({ id });
   }
 
+  async getAIContentByName(name: string) {
+    return await this.aiContentRepository.findOneBy({ name });
+  }
+
   async createAIContent(data: Partial<AIContent>){
     const newAIContent = this.aiContentRepository.create(data);
     return await this.aiContentRepository.save(newAIContent);
