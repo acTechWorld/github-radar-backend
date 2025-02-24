@@ -11,6 +11,9 @@ class AIContentService {
     async getAIContentById(id) {
         return await this.aiContentRepository.findOneBy({ id });
     }
+    async getAIContentByName(name) {
+        return await this.aiContentRepository.findOneBy({ name });
+    }
     async createAIContent(data) {
         const newAIContent = this.aiContentRepository.create(data);
         return await this.aiContentRepository.save(newAIContent);

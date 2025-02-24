@@ -16,6 +16,10 @@ let AIContent = class AIContent {
     name;
     type;
     content;
+    //Technical Date
+    created_at;
+    //Technical Date
+    updated_at;
 };
 exports.AIContent = AIContent;
 __decorate([
@@ -34,6 +38,14 @@ __decorate([
     (0, typeorm_1.Column)({ type: "text" }),
     __metadata("design:type", String)
 ], AIContent.prototype, "content", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', default: () => 'NOW()' }),
+    __metadata("design:type", Date)
+], AIContent.prototype, "created_at", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'timestamp', default: () => 'NOW()', onUpdate: 'CURRENT_TIMESTAMP' }),
+    __metadata("design:type", Date)
+], AIContent.prototype, "updated_at", void 0);
 exports.AIContent = AIContent = __decorate([
     (0, typeorm_1.Entity)('ai_content')
 ], AIContent);
