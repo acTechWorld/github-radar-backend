@@ -14,6 +14,7 @@ router.get('/', async (req, res) => {
   }
 });
 
+//Fetch github repos from api
 router.get('/fetchGithubRepos', async (req, res) => {
     try {
       fetchGithubRepos(req.query.language as LanguageName);
