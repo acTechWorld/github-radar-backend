@@ -5,7 +5,8 @@ import { AppDataSource } from './db';
 import repositoryRoutes from './routes/repositoryRoutes';
 import languageRoutes from './routes/languageRoutes';
 import githubRoutes from './routes/githubRoutes';
-import aiContentRoutes from './routes/AIContentRoutes';
+import aiReposComparaisonRoutes from './routes/AIReposComparaisonRoutes';
+import aiRepoAnalysisRoutes from './routes/AIRepoAnalysisRoutes';
 import logger from './utils/logger';
 const app: Application = express();
 app.use(cors());
@@ -24,6 +25,7 @@ AppDataSource.initialize()
 app.use('/api/repositories', repositoryRoutes);
 app.use('/api/languages', languageRoutes);
 app.use('/api/github', githubRoutes);
-app.use('/api/aiContents', aiContentRoutes);
+app.use('/api/aiReposComparaisons', aiReposComparaisonRoutes);
+app.use('/api/aiRepoAnalysis', aiRepoAnalysisRoutes);
 
 export default app;

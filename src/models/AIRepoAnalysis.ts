@@ -1,15 +1,15 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-@Entity('ai_content')
-export class AIContent {
+@Entity('ai_repo_analysis')
+export class AIRepoAnalysis {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ type: 'varchar', length: 100, unique: true })
-  name!: string;
+  @Column({ type: 'varchar', length: 255 })
+  repo_name!: string;
 
-  @Column({ type: 'varchar', length: 100 })
-  type!: string;
+  @Column({ type: 'varchar', length: 255 })
+  repo_owner!: string;
 
   @Column({type: "text"})
   content?: string;

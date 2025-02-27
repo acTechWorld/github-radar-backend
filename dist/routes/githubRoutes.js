@@ -14,6 +14,7 @@ router.get('/', async (req, res) => {
         res.status(500).json({ message: 'Error getting github repositories', error: error.message ?? error });
     }
 });
+//Fetch github repos from api
 router.get('/fetchGithubRepos', async (req, res) => {
     try {
         (0, fetchGithubRepos_1.fetchGithubRepos)(req.query.language);

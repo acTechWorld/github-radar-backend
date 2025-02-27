@@ -3,7 +3,8 @@ import { DataSource } from 'typeorm';
 import { Repository } from './models/Repository';
 import { Language } from './models/Language';
 import { TrendingMetric } from './models/TrendingMetric';
-import { AIContent } from './models/AIContent';
+import { AIReposComparaison } from './models/AIReposComparaison';
+import { AIRepoAnalysis } from './models/AIRepoAnalysis';
 export const AppDataSource = new DataSource({
   type: 'postgres',
   host: process.env.DB_HOST ?? 'localhost',
@@ -13,5 +14,5 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME,
   synchronize: true, // Automatically sync database schema during development
   logging: false, // Logs SQL queries for debugging
-  entities: [Repository, Language, TrendingMetric, AIContent], // Add all entity models here
+  entities: [Repository, Language, TrendingMetric, AIReposComparaison, AIRepoAnalysis], // Add all entity models here
 });

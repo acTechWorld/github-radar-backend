@@ -10,7 +10,8 @@ const db_1 = require("./db");
 const repositoryRoutes_1 = __importDefault(require("./routes/repositoryRoutes"));
 const languageRoutes_1 = __importDefault(require("./routes/languageRoutes"));
 const githubRoutes_1 = __importDefault(require("./routes/githubRoutes"));
-const AIContentRoutes_1 = __importDefault(require("./routes/AIContentRoutes"));
+const AIReposComparaisonRoutes_1 = __importDefault(require("./routes/AIReposComparaisonRoutes"));
+const AIRepoAnalysisRoutes_1 = __importDefault(require("./routes/AIRepoAnalysisRoutes"));
 const logger_1 = __importDefault(require("./utils/logger"));
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)());
@@ -27,5 +28,6 @@ db_1.AppDataSource.initialize()
 app.use('/api/repositories', repositoryRoutes_1.default);
 app.use('/api/languages', languageRoutes_1.default);
 app.use('/api/github', githubRoutes_1.default);
-app.use('/api/aiContents', AIContentRoutes_1.default);
+app.use('/api/aiReposComparaisons', AIReposComparaisonRoutes_1.default);
+app.use('/api/aiRepoAnalysis', AIRepoAnalysisRoutes_1.default);
 exports.default = app;
