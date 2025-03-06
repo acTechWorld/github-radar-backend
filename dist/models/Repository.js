@@ -77,6 +77,7 @@ let Repository = class Repository {
     updated_at;
     owner_type; // 'Organization' or 'Individual'
     readme_content;
+    cleaned_readme_content;
     //Technical Date
     last_update_readme;
     trending_metrics;
@@ -218,6 +219,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: "text", nullable: true }),
     __metadata("design:type", Object)
 ], Repository.prototype, "readme_content", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "text", nullable: true }),
+    __metadata("design:type", Object)
+], Repository.prototype, "cleaned_readme_content", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'timestamp', default: () => 'NOW()' }),
     __metadata("design:type", Date)

@@ -1,6 +1,7 @@
 // src/routes/repository.routes.ts
 import { Router, Request, Response } from 'express';
 import { RepositoryService } from '../services/repositoryService';
+import { getCleanedReadme } from '../scripts/remorkReadme';
 
 const router = Router();
 const repositoryService = new RepositoryService();
@@ -84,5 +85,11 @@ router.delete('/:id', async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Error creating repository', error:  error.message ?? error });
   }
 });
+
+
+router.post('/get-cleaned-readme', async (req: Request, res: Response) => {
+  await getCleanedReadme()
+  res.status(200).json(true);
+})
 
 export default router;

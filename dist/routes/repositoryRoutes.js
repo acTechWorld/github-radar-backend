@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 // src/routes/repository.routes.ts
 const express_1 = require("express");
 const repositoryService_1 = require("../services/repositoryService");
+const remorkReadme_1 = require("../scripts/remorkReadme");
 const router = (0, express_1.Router)();
 const repositoryService = new repositoryService_1.RepositoryService();
 // GET /repositories - Get all repositories
@@ -81,5 +82,9 @@ router.delete('/:id', async (req, res) => {
     catch (error) {
         res.status(500).json({ message: 'Error creating repository', error: error.message ?? error });
     }
+});
+router.post('/get-cleaned-readme', async (req, res) => {
+    await (0, remorkReadme_1.getCleanedReadme)();
+    res.status(200).json(true);
 });
 exports.default = router;

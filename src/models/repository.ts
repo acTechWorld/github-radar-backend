@@ -136,6 +136,9 @@ export class Repository {
   @Column({type: "text", nullable: true})
   readme_content?: string | null;
 
+  @Column({type: "text", nullable: true})
+  cleaned_readme_content?: string | null;
+
   //Technical Date
   @Column({ type: 'timestamp', default: () => 'NOW()' })
   last_update_readme!: Date;
